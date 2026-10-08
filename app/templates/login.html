@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Acceso | Dely Drinks</title>
+  <style>
+    :root{font-family:Inter,Segoe UI,Arial,sans-serif;color:#202a25;background:#f4f6f3}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px;background:radial-gradient(ellipse at 85% 90%,#d4a1632a,transparent 38%),#f4f6f3;position:relative}body:before{content:"";position:fixed;z-index:0;right:2vw;bottom:0;width:min(34vw,390px);height:min(78vh,570px);background:url('/static/fernet-coca.svg') right bottom/contain no-repeat;opacity:.22;pointer-events:none}.card{position:relative;z-index:1;width:min(100%,560px);background:#fff;border:1px solid #e1e8e2;border-radius:14px;padding:26px;box-shadow:0 8px 28px #183b2b12}.brand{background:linear-gradient(95deg,#173f35 0%,#173f35ed 55%,#173f3570 100%),url('/static/fernet-coca.svg') right 42%/auto 185% no-repeat,#173f35;color:white;border-radius:10px;padding:22px 170px 22px 18px;margin-bottom:20px;min-height:110px;display:flex;flex-direction:column;justify-content:center}.brand h1{font-size:21px;margin:0}.brand p{margin:5px 0 0;color:#c7ddd5}.section{display:none}.section.active{display:block}h2{font-size:18px;margin:0 0 8px}.hint{color:#65746a;font-size:13px;line-height:1.5;margin:0 0 16px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.role{grid-column:1/-1;padding-top:12px;border-top:1px solid #edf0ed}.role h3{margin:0 0 10px;font-size:14px}.field{margin-bottom:12px}.field label{display:block;font-size:13px;font-weight:600;margin-bottom:5px}.field input{width:100%;padding:10px;border:1px solid #d4ddd6;border-radius:7px;font:inherit}button{border:0;border-radius:8px;background:#176b53;color:white;padding:11px 14px;font-weight:600;cursor:pointer;width:100%}.message{display:none;margin:0 0 14px;padding:10px 12px;border-radius:8px}.message.error{display:block;background:#fff0ee;color:#8d2e27}.message.ok{display:block;background:#eaf5ee;color:#245c3b}@media(max-width:520px){.grid{grid-template-columns:1fr}.role{grid-column:auto}.brand{padding-right:115px;background-size:auto,auto 150%}.card{padding:20px}body:before{right:-10vw;width:56vw;height:48vh;opacity:.12}}
+  </style>
+  <style>
+    :root{--deep:#173f35;--green:#176b53;--gold:#d2a05d}
+    body{background:radial-gradient(ellipse at 12% 12%,#36765420,transparent 34%),radial-gradient(ellipse at 86% 84%,#d39b5028,transparent 38%),#f1f5f0}
+    .card{border-radius:20px;border-color:#e2ebe3;box-shadow:0 24px 70px #193c2b1c;padding:30px}
+    .brand{border:1px solid #ffffff20;border-bottom:3px solid var(--gold);border-radius:14px;box-shadow:0 10px 25px #173f3528}
+    h2{color:#1c4436;font-size:20px;letter-spacing:-.025em}.hint{color:#6d7d72}
+    .field label{color:#344d3f}.field input{border-radius:9px;border-color:#d9e3da;padding:12px;transition:border-color .16s,box-shadow .16s}
+    .field input:focus{outline:none;border-color:#5b9879;box-shadow:0 0 0 4px #4c8e681a}
+    button{border-radius:9px;background:linear-gradient(115deg,#176b53,#245842);box-shadow:0 6px 15px #176b5328;transition:transform .16s,box-shadow .16s}
+    button:not(:disabled):hover{transform:translateY(-1px);box-shadow:0 10px 22px #176b5335}button:focus-visible{outline:3px solid #d2a05d88;outline-offset:3px}
+    .role{border-color:#e5ece6}.message.error{border-radius:9px}
+    @media(max-width:520px){.card{padding:20px}}
+  </style>
+</head>
+<body>
+  <main class="card">
+    <header class="brand"><h1>Dely Drinks</h1><p>Panel de pedidos</p></header>
+    <div id="notice" class="message"></div>
+    <section id="setup" class="section">
+      <h2>Configuración inicial</h2>
+      <p class="hint">Creá los tres usuarios. Usá contraseñas diferentes de al menos 10 caracteres y guardalas en un lugar seguro.</p>
+      <form id="setup-form">
+        <div class="grid">
+          <div class="role"><h3>Administrador</h3>
+            <div class="field"><label for="admin-user">Usuario</label><input id="admin-user" required minlength="3" maxlength="80" value="admin"></div>
+            <div class="field"><label for="admin-pass">Contraseña</label><input id="admin-pass" type="password" required minlength="10" autocomplete="new-password"></div>
+          </div>
+          <div class="role"><h3>Preparador</h3>
+            <div class="field"><label for="prep-user">Usuario</label><input id="prep-user" required minlength="3" maxlength="80" value="preparacion"></div>
+            <div class="field"><label for="prep-pass">Contraseña</label><input id="prep-pass" type="password" required minlength="10" autocomplete="new-password"></div>
+          </div>
+          <div class="role"><h3>Despachante</h3>
+            <div class="field"><label for="dispatch-user">Usuario</label><input id="dispatch-user" required minlength="3" maxlength="80" value="despacho"></div>
+            <div class="field"><label for="dispatch-pass">Contraseña</label><input id="dispatch-pass" type="password" required minlength="10" autocomplete="new-password"></div>
+          </div>
+        </div>
+        <button type="submit">Crear los tres usuarios</button>
+      </form>
+    </section>
+    <section id="login" class="section">
+      <h2>Iniciar sesión</h2>
+      <p class="hint">Ingresá con la cuenta que te asignaron.</p>
+      <form id="login-form">
+        <div class="field"><label for="username">Usuario</label><input id="username" required autocomplete="username"></div>
+        <div class="field"><label for="password">Contraseña</label><input id="password" type="password" required autocomplete="current-password"></div>
+        <button type="submit">Entrar</button>
+      </form>
+    </section>
+  </main>
+  <script>
+    const notice=document.querySelector('#notice');
+    function showError(text){notice.textContent=text;notice.className='message error'}
+    async function send(url,data){let r;try{r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data),cache:'no-store',signal:AbortSignal.timeout(15000)})}catch(e){if(e.name==='TimeoutError'||e.name==='AbortError')throw new Error('El servidor tardó demasiado en responder. Revisá la terminal de Iniciar panel.bat.');throw e}let result={};try{result=await r.json()}catch{}if(!r.ok)throw new Error(result.detail||'No se pudo completar la operación');return result}
+    async function iniciar(){try{const r=await fetch('/auth/status');const d=await r.json();document.querySelector(d.configurado?'#login':'#setup').classList.add('active')}catch{showError('No se pudo conectar con el panel. Verificá que Iniciar panel.bat esté abierto.')}}
+    document.querySelector('#setup-form').addEventListener('submit',async e=>{e.preventDefault();const button=e.submitter;button.disabled=true;button.textContent='Creando usuarios…';try{await send('/auth/setup',{administrador:{nombre_usuario:document.querySelector('#admin-user').value,password:document.querySelector('#admin-pass').value},preparador:{nombre_usuario:document.querySelector('#prep-user').value,password:document.querySelector('#prep-pass').value},despachante:{nombre_usuario:document.querySelector('#dispatch-user').value,password:document.querySelector('#dispatch-pass').value}});location.replace('/?sesion='+Date.now())}catch(err){showError(err.message);button.disabled=false;button.textContent='Crear los tres usuarios'}});
+    document.querySelector('#login-form').addEventListener('submit',async e=>{e.preventDefault();const button=e.submitter;button.disabled=true;button.textContent='Ingresando…';try{await send('/auth/login',{nombre_usuario:document.querySelector('#username').value,password:document.querySelector('#password').value});location.replace('/?sesion='+Date.now())}catch(err){showError(err.message);button.disabled=false;button.textContent='Entrar'}});
+    iniciar();
+  </script>
+</body>
+</html>

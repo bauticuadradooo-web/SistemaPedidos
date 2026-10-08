@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pedidos | Dely Drinks</title>
+  <style>
+    :root{font-family:Inter,Segoe UI,Arial,sans-serif;color:#202a25;background:#f4f6f3}*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 8% 88%,#d5a26620,transparent 34%),#f4f6f3;position:relative}body:before{content:"";position:fixed;z-index:0;right:-35px;bottom:-45px;width:min(34vw,390px);height:min(74vh,580px);background:url('/static/fernet-coca.svg') right bottom/contain no-repeat;opacity:.18;pointer-events:none}.top,.wrap{position:relative;z-index:1}.top{position:relative;overflow:hidden;background:linear-gradient(105deg,#173f35 0%,#214b3d 68%,#704a2b 125%);color:#fff;padding:18px max(20px,calc((100% - 1200px)/2));display:flex;justify-content:space-between;align-items:center;gap:18px;min-height:112px}.top:after{content:"";position:absolute;right:20%;top:-30px;width:122px;height:170px;background:url('/static/fernet-coca.svg') center/contain no-repeat;opacity:.92;pointer-events:none}.top h1,.top p,.userbar{position:relative;z-index:1}.top h1{margin:0;font-size:22px}.top p{margin:5px 0 0;color:#c7ddd5;font-size:14px}.userbar{display:flex;align-items:center;gap:10px}.userbar span{font-size:13px}.wrap{max-width:1200px;margin:26px auto;padding:0 20px}.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px;margin-bottom:18px}.stat,.card{background:#fff;border:1px solid #e1e8e2;border-radius:11px;padding:17px;box-shadow:0 2px 8px #183b2b08}.stat span{color:#68766e;font-size:13px}.stat strong{display:block;font-size:23px;margin-top:6px}.card{margin-bottom:18px}.bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}.bar h2,.card h2{font-size:18px;margin:0}.button,button{border:0;border-radius:8px;background:#176b53;color:#fff;padding:9px 13px;font-weight:600;cursor:pointer}.button:hover,button:hover{background:#10523f}button.secondary{background:#e7eee9;color:#26483d}button:disabled{opacity:.5;cursor:not-allowed}input{padding:9px;border:1px solid #d4ddd6;border-radius:7px;font:inherit;width:100%}.row{display:grid;grid-template-columns:1fr 1fr 130px 155px;gap:10px;align-items:end;max-width:900px}.field label{display:block;font-size:13px;font-weight:600;margin:0 0 5px;color:#43544a}.hint{font-size:12px;color:#718077;margin-top:10px}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:11px 8px;border-bottom:1px solid #edf0ed;vertical-align:top}th{color:#65746a;font-size:12px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}.pill{display:inline-block;border-radius:18px;background:#edf2ee;padding:5px 9px;font-size:12px}.actions{display:flex;gap:7px;align-items:center;flex-wrap:wrap}select{border:1px solid #d4ddd6;border-radius:7px;padding:8px;background:white}.message{padding:11px 13px;border-radius:8px;margin:0 0 14px;display:none}.message.error{display:block;background:#fff0ee;color:#8d2e27}.message.ok{display:block;background:#eaf5ee;color:#245c3b}.empty{color:#718077;text-align:center;padding:24px}.detail{font-size:13px;color:#53645a;min-width:150px}.detail div{margin:2px 0}.contact{font-size:13px;color:#53645a}.stock-low{color:#a33d34;font-weight:600}.stock-control{display:flex;gap:7px;align-items:center;min-width:125px}.stock-control input{width:72px;text-align:center;padding:8px}.stock-control button{width:36px;height:36px;padding:0;font-size:19px}.product-name{min-width:190px}.receipt{display:inline-block;margin:4px 5px 4px 0;color:#176b53;font-weight:600}.pay-pending{color:#8a5b00;font-weight:600}.pay-ok{color:#176b53;font-weight:600}.hidden{display:none!important}@media(max-width:700px){.top{padding:16px 18px;align-items:flex-start}.top:after{right:28%;width:80px;height:120px;top:-14px;opacity:.64}.top h1{font-size:19px}.userbar{flex-direction:column;align-items:flex-end}.userbar span{max-width:150px;text-align:right}.row{grid-template-columns:1fr}.actions{align-items:stretch;flex-direction:column}body:before{width:48vw;opacity:.12}}
+  </style>
+  <style>
+    :root{--forest:#173f35;--leaf:#176b53;--amber:#c88b46;--ink:#1e3029;--muted:#6b7a71;--line:#e3ebe5}
+    body{color:var(--ink);background:radial-gradient(ellipse at 9% 12%,#d4a46718,transparent 34%),radial-gradient(ellipse at 90% 85%,#2b765012,transparent 32%),#f3f6f2}
+    .top{min-height:132px;padding-top:24px;padding-bottom:24px;border-bottom:3px solid #bc8547;box-shadow:0 10px 28px #12372b20}
+    .top>div:first-child:before{content:"DELY DRINKS  ·  GESTIÓN DE PEDIDOS";display:block;margin-bottom:8px;color:#e4c89e;font-size:11px;font-weight:800;letter-spacing:.16em}
+    .top h1{font-size:26px;letter-spacing:-.035em}.top p{font-size:14px}
+    .userbar button{border:1px solid #ffffff42;background:#ffffff16;color:#fff;backdrop-filter:blur(8px);transition:background .18s,transform .18s}
+    .userbar button:hover{background:#ffffff2c;transform:translateY(-1px)}
+    .wrap{margin-top:30px;margin-bottom:40px}
+    .stats{gap:15px;margin-bottom:22px}
+    .stat{position:relative;overflow:hidden;min-height:105px;padding:18px 19px;background:linear-gradient(145deg,#fff 0%,#f7faf7 100%);border:1px solid var(--line);border-top:3px solid #31765a;border-radius:14px;box-shadow:0 6px 18px #183b2b0b;transition:transform .18s,box-shadow .18s}
+    .stat:hover{transform:translateY(-3px);box-shadow:0 12px 25px #183b2b15}
+    .stat:nth-child(2){border-top-color:#d69b4d}.stat:nth-child(3){border-top-color:#4a8c76}.stat:nth-child(4){border-top-color:#b77a39}.stat:nth-child(5){border-top-color:#7f9d62}
+    .stat span{font-size:12px;font-weight:700;letter-spacing:.035em;color:#6a7a70}.stat strong{margin-top:10px;font-size:25px;letter-spacing:-.035em;color:#1d3b30}
+    .card{padding:20px;background:#ffffffed;border:1px solid #e0e9e2;border-radius:15px;box-shadow:0 8px 24px #193a2b0c;margin-bottom:20px}
+    .bar{margin-bottom:17px}.bar h2,.card h2{color:#1e3b30;font-size:19px;letter-spacing:-.02em}
+    .bar h2:before{content:"";display:inline-block;width:8px;height:20px;margin-right:10px;vertical-align:-4px;border-radius:8px;background:linear-gradient(#d4a05b,#2c7658)}
+    .hint{color:var(--muted)}
+    table{font-size:13px}th{background:#f4f7f4;color:#52675b;font-size:11px;letter-spacing:.07em;padding-top:13px;padding-bottom:13px}th:first-child{border-radius:8px 0 0 8px}th:last-child{border-radius:0 8px 8px 0}td{padding:13px 9px}tbody tr{transition:background .15s}tbody tr:hover{background:#f5f8f5}
+    .pill{font-weight:700;border:1px solid transparent;padding:6px 10px}.estado-pendiente{background:#fff3d9;color:#855500;border-color:#f0dfb8}.estado-preparando{background:#e9f0ff;color:#345b9a;border-color:#d6e1fa}.estado-listo{background:#f2eaff;color:#67439a;border-color:#e5d7fa}.estado-camino{background:#e5f5f3;color:#167268;border-color:#c9e9e5}.estado-entregado{background:#e4f3e8;color:#246b3b;border-color:#cde7d3}.estado-cancelado{background:#fff0ee;color:#9b342e;border-color:#f1d0cc}
+    button{transition:transform .16s,box-shadow .16s,background .16s}button:not(:disabled):hover{transform:translateY(-1px);box-shadow:0 5px 12px #174f3924}button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid #c88b4660;outline-offset:2px}
+    input,select{border-color:#d5e0d7;border-radius:8px;transition:border-color .16s,box-shadow .16s}input:focus,select:focus{border-color:#5b9879;box-shadow:0 0 0 3px #4c8e681a;outline:none}
+    .empty{padding:30px 20px;color:#77877d}
+    .day-controls{display:flex;align-items:center;justify-content:space-between;gap:16px;border-left:4px solid #d39b50;background:linear-gradient(110deg,#fffdf8,#fff)}.day-controls .date{font-size:18px;font-weight:800;color:#284f3e}.day-controls .hint{margin:5px 0 0}.day-controls button{background:linear-gradient(120deg,#a95635,#c17c3c);color:#fff}.archive-detail{margin-top:18px}.archive-detail h3{margin:0 0 12px;color:#244535}
+    @media(max-width:700px){.top{min-height:118px}.top h1{font-size:21px}.top>div:first-child:before{font-size:9px}.wrap{margin-top:18px}.card{padding:15px}.stat{min-height:90px;padding:15px}.stat strong{font-size:21px}}
+    @media(max-width:700px){.day-controls{align-items:flex-start;flex-direction:column}.day-controls button{width:100%}}
+    #notice{position:fixed;z-index:20;top:18px;right:18px;width:min(420px,calc(100vw - 36px));margin:0;border:1px solid #d9e5dc;border-radius:12px;box-shadow:0 12px 35px #173f3526;animation:notice-in .18s ease-out}
+    #notice.ok{background:#edf7ef;color:#225b38;border-color:#cfe5d2}#notice.error{background:#fff0ee;color:#8d2e27;border-color:#f1d0cc}
+    @keyframes notice-in{from{opacity:0;transform:translateY(-7px)}to{opacity:1;transform:translateY(0)}}
+    @media(max-width:700px){#notice{top:10px;right:10px;width:calc(100vw - 20px)}}
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div><h1>Pedidos del comercio</h1><p id="role-description">Administrá los pedidos</p></div>
+    <div class="userbar"><span id="current-user"></span><button class="secondary" onclick="cerrarSesion()">Cerrar sesión</button></div>
+  </header>
+  <main class="wrap">
+    <div id="notice" class="message"></div>
+    <section class="stats" id="admin-stats">
+      <div class="stat"><span>Pedidos activos</span><strong id="active-count">—</strong></div>
+      <div class="stat"><span>Pendientes</span><strong id="pending-count">—</strong></div>
+      <div class="stat"><span>Ventas entregadas</span><strong id="sales-count">—</strong></div>
+      <div class="stat"><span>Ingresos entregados</span><strong id="sales-total">—</strong></div>
+      <div class="stat"><span>Productos en catálogo</span><strong id="product-count">—</strong></div>
+    </section>
+    <section class="card day-controls hidden" id="day-controls">
+      <div><div class="hint">JORNADA ACTUAL</div><div class="date" id="current-day-label">—</div><div class="hint">Al finalizar, los pedidos y ventas quedarán archivados por fecha y se abrirá el día siguiente.</div></div>
+      <button type="button" onclick="finalizarDia()">Finalizar día</button>
+    </section>
+    <section class="card hidden" id="backup-card">
+      <div class="bar"><h2>Copia de seguridad</h2><button type="button" class="secondary" onclick="crearRespaldo()">Crear copia ahora</button></div>
+      <p class="hint">Guardá una copia de pedidos, productos y cuentas en <code>database/backups</code>. Se crea otra copia automáticamente al finalizar el día. El token de Telegram no se incluye.</p>
+    </section>
+    <section class="card" id="orders-card">
+      <div class="bar"><h2 id="orders-title">Pedidos</h2><span id="updated" class="hint"></span></div>
+      <div class="table-wrap"><table><thead id="orders-head"></thead><tbody id="orders-body"></tbody></table></div>
+    </section>
+    <section class="card hidden" id="delivered-card">
+      <div class="bar"><h2>Registro de pedidos entregados</h2><span class="hint">Historial guardado de ventas completadas</span></div>
+      <div class="table-wrap"><table><thead><tr><th>Pedido / Cliente</th><th>Dirección</th><th>Artículos</th><th>Total</th><th>Pago</th><th>Comprobante</th><th>Estado</th></tr></thead><tbody id="delivered-body"></tbody></table></div>
+    </section>
+    <section class="card hidden" id="days-card">
+      <div class="bar"><h2>Días finalizados</h2></div>
+      <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Pedidos</th><th>Ventas entregadas</th><th></th></tr></thead><tbody id="days-body"></tbody></table></div>
+      <div id="archive-detail" class="archive-detail hidden"><h3 id="archive-title"></h3><div class="table-wrap"><table><thead><tr><th>Pedido / Cliente</th><th>Dirección</th><th>Artículos</th><th>Total</th><th>Pago</th><th>Comprobante</th><th>Estado</th></tr></thead><tbody id="archive-orders-body"></tbody></table></div></div>
+    </section>
+    <section class="card hidden" id="products-card">
+      <div class="bar"><h2>Catálogo y stock</h2></div>
+      <form id="product-form"><div class="row">
+        <div class="field"><label for="new-name">Producto</label><input id="new-name" required maxlength="120" placeholder="Ej.: Fernet 750 ml"></div>
+        <div class="field"><label for="new-price">Precio</label><input id="new-price" type="number" min="0.01" step="0.01" required placeholder="19000"></div>
+        <div class="field"><label for="new-stock">Stock inicial</label><input id="new-stock" type="number" min="0" step="1" value="0" required></div>
+        <button type="submit">Agregar producto</button>
+      </div></form>
+      <p class="hint">Escribí el stock y presioná Guardar, o usá +/− para sumar o restar una unidad al instante. Para corregir nombre o precio, editá el campo y presioná Guardar.</p>
+      <div class="table-wrap"><table><thead><tr><th>Producto</th><th>Precio</th><th>Disponible</th><th></th></tr></thead><tbody id="products-body"></tbody></table></div>
+    </section>
+  </main>
+  <script>
+    const estados=['pendiente','preparando','listo_para_despacho','en_camino','entregado'];
+    const nombresEstado={pendiente:'Pendiente',preparando:'En preparación',listo_para_despacho:'Listo para despacho',en_camino:'En camino',entregado:'Entregado',cancelado:'Cancelado'};
+    const dinero=n=>new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(Number(n)||0);
+    let usuarioActual=null;
+    let cerrandoSesion=false;
+    let cargaEnCurso=false;
+    function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+    function avisar(t,tipo='ok'){let n=document.querySelector('#notice');n.textContent=t;n.className='message '+tipo;setTimeout(()=>n.className='message',4500)}
+    async function api(url,options={}){let r;try{r=await fetch(url,{...options,signal:options.signal||AbortSignal.timeout(15000),cache:'no-store',headers:{'Content-Type':'application/json',...(options.headers||{})}})}catch(e){if(e.name==='TimeoutError'||e.name==='AbortError')throw Error('El panel tardó demasiado en responder. Esperá unos segundos y volvé a intentar.');throw e}let d={};try{d=await r.json()}catch{}if(r.status===401){if(!cerrandoSesion)location.replace('/?sesion='+Date.now());throw Error('La sesión venció. Iniciá sesión otra vez.')}if(!r.ok)throw Error(d.detail||'No se pudo completar la operación');return d}
+    async function cerrarSesion(){if(cerrandoSesion)return;cerrandoSesion=true;const boton=document.querySelector('.userbar button');boton.disabled=true;boton.textContent='Cerrando sesión…';try{await api('/auth/logout',{method:'POST'});location.replace('/?sesion='+Date.now())}catch(e){cerrandoSesion=false;boton.disabled=false;boton.textContent='Cerrar sesión';avisar(e.message,'error')}}
+    function configurarVista(){
+      const nombres={administrador:'Administrador',preparador:'Preparador',despachante:'Despachante'};
+      document.querySelector('#current-user').textContent=`${usuarioActual.nombre_usuario} · ${nombres[usuarioActual.rol]||usuarioActual.rol}`;
+      document.querySelector('#role-description').textContent=usuarioActual.rol==='administrador'?'Pedidos, ventas, catálogo y stock':usuarioActual.rol==='preparador'?'Pedidos recibidos: productos y cantidades':'Pedidos listos para despacho y datos de entrega';
+      const admin=usuarioActual.rol==='administrador';
+      document.querySelector('#admin-stats').classList.toggle('hidden',!admin);
+      document.querySelector('#day-controls').classList.toggle('hidden',!admin);
+      document.querySelector('#delivered-card').classList.toggle('hidden',!admin);
+      document.querySelector('#days-card').classList.toggle('hidden',!admin);
+      document.querySelector('#products-card').classList.toggle('hidden',!admin);
+      document.querySelector('#backup-card').classList.toggle('hidden',!admin);
+      document.querySelector('#orders-title').textContent=usuarioActual.rol==='preparador'?'Pedidos para preparar':usuarioActual.rol==='despachante'?'Pedidos para despachar':'Pedidos recibidos por Telegram';
+      if(usuarioActual.rol==='preparador')document.querySelector('#orders-head').innerHTML='<tr><th>Pedido</th><th>Artículos y cantidades</th><th>Estado</th><th>Acción</th></tr>';
+      else if(usuarioActual.rol==='despachante')document.querySelector('#orders-head').innerHTML='<tr><th>Pedido / Cliente</th><th>Dirección y contacto</th><th>Artículos</th><th>Total</th><th>Pago / cambio</th><th>Comprobante</th><th>Estado</th><th>Acción</th></tr>';
+      else document.querySelector('#orders-head').innerHTML='<tr><th>Pedido / Cliente</th><th>Dirección y contacto</th><th>Artículos</th><th>Total</th><th>Pago / cambio</th><th>Comprobante</th><th>Estado</th><th>Acción</th></tr>';
+    }
+    async function cargarTodo(){
+      if(cerrandoSesion||cargaEnCurso)return;
+      cargaEnCurso=true;
+      try{
+        usuarioActual=usuarioActual||await api('/auth/me');
+        configurarVista();
+        let pedidos=await api('/pedidos/todos');
+        let productos=usuarioActual.rol==='administrador'?await api('/productos'):[];
+        let jornada=null;let jornadas=[];
+        if(usuarioActual.rol==='administrador'){
+          [jornada,jornadas]=await Promise.all([api('/jornadas/actual'),api('/jornadas/historial')]);
+          document.querySelector('#current-day-label').textContent=fechaBonita(jornada.fecha);
+          dibujarDias(jornadas);
+        }
+        let activos=pedidos.filter(p=>!['entregado','cancelado'].includes(p.estado));
+        let ventas=pedidos.filter(p=>p.estado==='entregado');
+        if(usuarioActual.rol==='administrador'){
+          document.querySelector('#active-count').textContent=activos.length;
+          document.querySelector('#pending-count').textContent=pedidos.filter(p=>p.estado==='pendiente').length;
+          document.querySelector('#sales-count').textContent=ventas.length;
+          document.querySelector('#sales-total').textContent=dinero(ventas.reduce((s,p)=>s+Number(p.total||0),0));
+          document.querySelector('#product-count').textContent=productos.length;
+        }
+        document.querySelector('#updated').textContent='Actualizado '+new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+        dibujarPedidos(usuarioActual.rol==='administrador'?pedidos.filter(p=>p.estado!=='entregado'):pedidos);
+        if(usuarioActual.rol==='administrador'){dibujarHistorial(ventas);dibujarProductos(productos)}
+      }catch(e){if(!String(e.message).includes('sesión')&&!cerrandoSesion)avisar(e.message,'error')}
+      finally{cargaEnCurso=false}
+    }
+    function articulosHtml(p){return (p.detalles||[]).map(d=>`<div>${esc(d.producto)} × ${d.cantidad}</div>`).join('')||'—'}
+    function entregaHtml(p){if(!Number(p.costo_envio))return '';const zona=p.zona_entrega==='microcentro'?'Microcentro':'Macrocentro';return `<div class="contact">${zona} · envío ${dinero(p.costo_envio)}</div>`}
+    function fechaBonita(fecha){return new Date(`${fecha}T12:00:00`).toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
+    function dibujarDias(items){const body=document.querySelector('#days-body');body.innerHTML=items.length?items.map(d=>`<tr><td><strong>${esc(fechaBonita(d.fecha))}</strong></td><td>${d.cantidad_pedidos}</td><td>${dinero(d.total_ventas)}</td><td><button class="secondary" type="button" onclick="verDia(${d.id},'${esc(d.fecha)}')">Ver pedidos</button></td></tr>`).join(''):'<tr><td colspan="4" class="empty">Todavía no hay días finalizados.</td></tr>'}
+    async function verDia(id,fecha){try{const pedidos=await api(`/jornadas/${id}/pedidos`);document.querySelector('#archive-title').textContent=`Pedidos del ${fechaBonita(fecha)}`;const body=document.querySelector('#archive-orders-body');body.innerHTML=pedidos.length?pedidos.map(p=>`<tr><td><strong>#${p.id}</strong><br>${esc(p.cliente)}</td><td>${esc(p.direccion)}<div class="contact">${esc(p.telefono||'Sin teléfono')}</div>${entregaHtml(p)}</td><td class="detail">${articulosHtml(p)}</td><td>${dinero(p.total)}</td><td>${pagoHtml(p)}</td><td>${comprobanteHtml(p)}</td><td>${estadoHtml(p.estado)}</td></tr>`).join(''):'<tr><td colspan="7" class="empty">Ese día no tuvo pedidos.</td></tr>';document.querySelector('#archive-detail').classList.remove('hidden')}catch(e){avisar(e.message,'error')}}
+    async function finalizarDia(){if(!confirm('¿Finalizar este día? Se archivarán sus pedidos y ventas. Todos deben estar entregados o cancelados.'))return;try{const resultado=await api('/jornadas/finalizar',{method:'POST'});const copia=resultado.respaldo?` Copia guardada: ${resultado.respaldo}.`:'';avisar(`Día archivado. Ya está abierto el ${fechaBonita(resultado.proxima_fecha)}.${copia}${resultado.aviso_respaldo?' '+resultado.aviso_respaldo:''}`,resultado.aviso_respaldo?'error':'ok');document.querySelector('#archive-detail').classList.add('hidden');await cargarTodo()}catch(e){avisar(e.message,'error')}}
+    function accionesEstado(p){
+      if(p.estado==='cancelado')return estadoHtml('cancelado');
+      let opciones=usuarioActual.rol==='preparador'?(p.estado==='pendiente'?[['preparando','En preparación']]:[['listo_para_despacho','Listo para despacho']]):usuarioActual.rol==='despachante'?(p.estado==='en_camino'?[['entregado','Entregado']]:[['en_camino','En camino']]):[...estados.map(e=>[e,nombresEstado[e]]),['cancelado','Cancelar pedido']];
+      return `<div class="actions"><select id="status-${p.id}">${opciones.map(([v,n])=>`<option value="${v}" ${p.estado===v?'selected':''}>${n}</option>`).join('')}</select><button class="secondary" onclick="actualizarEstado(${p.id})">Guardar</button></div>`;
+    }
+    function estadoHtml(estado){const clases={pendiente:'estado-pendiente',preparando:'estado-preparando',listo_para_despacho:'estado-listo',en_camino:'estado-camino',entregado:'estado-entregado',cancelado:'estado-cancelado'};return `<span class="pill ${clases[estado]||''}">${esc(nombresEstado[estado]||estado)}</span>`}
+    function pagoHtml(p){let texto=esc(p.metodo_pago||'A coordinar');if(p.metodo_pago==='Efectivo')texto+=`<div class="contact">Paga con ${dinero(p.monto_efectivo)} · Llevar ${dinero(p.cambio)} de cambio</div>`;if(p.metodo_pago==='Transferencia')texto+=`<div class="contact ${p.pago_verificado?'pay-ok':'pay-pending'}">${p.pago_verificado?'Transferencia verificada':'Pendiente de verificar'}</div>`;return texto}
+    function comprobanteHtml(p){if(!p.comprobante_disponible)return '—';let html=`<a class="receipt" href="/pedidos/${p.id}/comprobante" target="_blank" rel="noopener">Ver recibo</a>`;if(!p.pago_verificado)html+=`<button class="secondary" onclick="verificarPago(${p.id})">Marcar verificado</button>`;return html}
+    function dibujarPedidos(items){
+      const body=document.querySelector('#orders-body');
+      if(!items.length){let colspan=usuarioActual.rol==='preparador'?4:8;body.innerHTML=`<tr><td colspan="${colspan}" class="empty">No hay pedidos para mostrar.</td></tr>`;return}
+      if(usuarioActual.rol==='preparador'){
+        body.innerHTML=items.map(p=>`<tr><td><strong>#${p.id}</strong></td><td class="detail">${articulosHtml(p)}</td><td>${estadoHtml(p.estado)}</td><td>${accionesEstado(p)}</td></tr>`).join('');return;
+      }
+      body.innerHTML=items.map(p=>`<tr><td><strong>#${p.id}</strong><br>${esc(p.cliente)}</td><td>${esc(p.direccion)}<div class="contact">${esc(p.telefono||'Sin teléfono')}</div>${entregaHtml(p)}</td><td class="detail">${articulosHtml(p)}</td><td>${dinero(p.total)}</td><td>${pagoHtml(p)}</td><td>${comprobanteHtml(p)}</td><td>${estadoHtml(p.estado)}</td><td>${accionesEstado(p)}</td></tr>`).join('');
+    }
+    function dibujarHistorial(items){
+      const body=document.querySelector('#delivered-body');
+      if(!items.length){body.innerHTML='<tr><td colspan="7" class="empty">Todavía no hay pedidos entregados.</td></tr>';return}
+      body.innerHTML=items.map(p=>`<tr><td><strong>#${p.id}</strong><br>${esc(p.cliente)}</td><td>${esc(p.direccion)}<div class="contact">${esc(p.telefono||'Sin teléfono')}</div>${entregaHtml(p)}</td><td class="detail">${articulosHtml(p)}</td><td>${dinero(p.total)}</td><td>${pagoHtml(p)}</td><td>${comprobanteHtml(p)}</td><td>${estadoHtml('entregado')}</td></tr>`).join('');
+    }
+    function dibujarProductos(items){document.querySelector('#products-body').innerHTML=items.length?items.map(p=>`<tr><td><input class="product-name" id="name-${p.id}" maxlength="120" value="${esc(p.nombre)}" aria-label="Nombre de ${esc(p.nombre)}"></td><td><input id="price-${p.id}" type="number" min="0.01" step="0.01" value="${p.precio}" style="max-width:125px" aria-label="Precio de ${esc(p.nombre)}"></td><td><div class="stock-control"><button class="secondary" type="button" aria-label="Restar una unidad de ${esc(p.nombre)}" onclick="ajustarStock(${p.id},-1)">−</button><input id="stock-${p.id}" type="number" min="0" step="1" inputmode="numeric" value="${p.stock}" class="${p.stock===0?'stock-low':''}" aria-label="Stock de ${esc(p.nombre)}"><button class="secondary" type="button" aria-label="Agregar una unidad de ${esc(p.nombre)}" onclick="ajustarStock(${p.id},1)">+</button></div></td><td><button class="secondary" onclick="guardarProducto(${p.id})">Guardar</button></td></tr>`).join(''):'<tr><td colspan="4" class="empty">Agregá los productos que ofrecerá el bot.</td></tr>'}
+    document.querySelector('#product-form').addEventListener('submit',async e=>{e.preventDefault();try{await api('/productos',{method:'POST',body:JSON.stringify({nombre:document.querySelector('#new-name').value.trim(),precio:Number(document.querySelector('#new-price').value),stock:Number(document.querySelector('#new-stock').value)})});e.target.reset();document.querySelector('#new-stock').value=0;avisar('Producto agregado al catálogo.');await cargarTodo()}catch(err){avisar(err.message,'error')}});
+    async function actualizarEstado(id){try{let estado=document.querySelector('#status-'+id).value;if(estado==='cancelado'&&!confirm(`¿Cancelar el pedido #${id}? Se devolverán sus productos al stock.`))return;await api(`/pedidos/${id}/estado?nuevo_estado=${estado}`,{method:'PUT'});avisar(`Pedido #${id}: ${nombresEstado[estado]}.`);await cargarTodo()}catch(e){avisar(e.message,'error')}}
+    async function verificarPago(id){try{await api(`/pedidos/${id}/pago-verificado`,{method:'PUT'});avisar(`Transferencia del pedido #${id} marcada como verificada.`);await cargarTodo()}catch(e){avisar(e.message,'error')}}
+    async function crearRespaldo(){try{const copia=await api('/respaldos/crear',{method:'POST'});avisar(`Copia creada en ${copia.ubicacion} (${Math.ceil(copia.bytes/1024)} KB).`)}catch(e){avisar(e.message,'error')}}
+    async function guardarProducto(id){try{await api(`/productos/${id}`,{method:'PUT',body:JSON.stringify({nombre:document.querySelector('#name-'+id).value.trim(),precio:Number(document.querySelector('#price-'+id).value),stock:Number(document.querySelector('#stock-'+id).value)})});avisar('Producto actualizado; el bot ya usa el nombre y precio nuevos.');await cargarTodo()}catch(e){avisar(e.message,'error')}}
+    async function ajustarStock(id,delta){try{let producto=await api(`/productos/${id}/stock`,{method:'PATCH',body:JSON.stringify({delta})});let campo=document.querySelector('#stock-'+id);campo.value=producto.stock;campo.classList.toggle('stock-low',producto.stock===0);avisar(`Stock actualizado: ${producto.nombre} tiene ${producto.stock} unidades.`)}catch(e){avisar(e.message,'error')}}
+    cargarTodo();setInterval(()=>{const editando=document.querySelector('input:focus,select:focus,textarea:focus');if(!cerrandoSesion&&!document.hidden&&!editando)cargarTodo()},30000);
+  </script>
+</body>
+</html>
