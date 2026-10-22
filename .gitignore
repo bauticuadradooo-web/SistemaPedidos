@@ -1,7 +1,13 @@
+.env
 .venv/
 __pycache__/
 *.py[cod]
-.env
-database/*.db
+database/*
+!database/.gitkeep
+logs/
+tests/tmp*/
+ENLACE PUBLICO.url
+
+*.log
 database/*.db-*
 database/backups/

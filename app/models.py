@@ -1,6 +1,6 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean, DateTime, Date
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean, DateTime, Date, LargeBinary, Numeric
+from sqlalchemy.orm import relationship, deferred
 from app.database import Base
 
 
@@ -23,6 +23,7 @@ class Pedido(Base):
     comprobante_mime_type = Column(String, nullable=True)
     comprobante_nombre = Column(String, nullable=True)
     pago_verificado = Column(Boolean, nullable=False, default=False)
+    alias_cliente = Column(String(80), nullable=True)
 
     detalles = relationship(
         "DetallePedido",
@@ -97,3 +98,43 @@ class SesionPanel(Base):
     expira_en = Column(DateTime, nullable=False, index=True)
 
     usuario = relationship("UsuarioPanel")
+
+
+class MovimientoStock(Base):
+    __tablename__ = "movimientos_stock"
+
+    id = Column(Integer, primary_key=True)
+    producto_id = Column(Integer, ForeignKey("productos.id"), nullable=False, index=True)
+    pedido_id = Column(Integer, ForeignKey("pedidos.id"), nullable=True, index=True)
+    delta = Column(Integer, nullable=False)
+    motivo = Column(String(1000), nullable=False)
+    autor = Column(String(100), nullable=False)
+    creado_en = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+
+class EventoPedido(Base):
+    __tablename__ = "eventos_pedido"
+
+    id = Column(Integer, primary_key=True)
+    pedido_id = Column(Integer, ForeignKey("pedidos.id"), nullable=False, index=True)
+    tipo = Column(String(40), nullable=False)
+    descripcion = Column(String(2000), nullable=False)
+    autor = Column(String(100), nullable=False)
+    creado_en = Column(DateTime, nullable=False, default=datetime.utcnow)
+    notificado = Column(Boolean, nullable=False, default=False)
+
+
+class DevolucionPedido(Base):
+    __tablename__ = "devoluciones_pedido"
+
+    id = Column(Integer, primary_key=True)
+    pedido_id = Column(Integer, ForeignKey("pedidos.id"), nullable=False, unique=True)
+    alias_destino = Column(String(80), nullable=False)
+    importe = Column(Numeric(14, 2), nullable=False)
+    comprobante = deferred(Column(LargeBinary, nullable=False))
+    mime_type = Column(String(40), nullable=False)
+    nombre_archivo = Column(String(100), nullable=False)
+    autor = Column(String(100), nullable=False)
+    creado_en = Column(DateTime, nullable=False, default=datetime.utcnow)
+    enviado_telegram = Column(Boolean, nullable=False, default=False)
+    envio_iniciado_en = Column(DateTime, nullable=True)

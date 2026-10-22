@@ -4,19 +4,21 @@ from sqlalchemy.orm import Session
 from app.models import DetallePedido, Pedido, Producto
 from app.schemas import PedidoCreate
 from app.services.jornadas import jornada_actual
+from app.services.cambios import iniciar_escritura
 
 COSTO_ENVIO_MICROCENTRO = 1500
 
 
 def crear_pedido(db: Session, datos: PedidoCreate) -> Pedido:
+    iniciar_escritura(db)
     cantidades = {}
     for detalle in datos.detalles:
         cantidades[detalle.producto_id] = cantidades.get(detalle.producto_id, 0) + detalle.cantidad
 
     productos = {}
     total = 0
-    for producto_id, cantidad in cantidades.items():
-        producto = db.query(Producto).filter(Producto.id == producto_id).first()
+    for producto_id, cantidad in sorted(cantidades.items()):
+        producto = db.query(Producto).filter(Producto.id == producto_id).with_for_update().first()
         if not producto:
             raise HTTPException(status_code=404, detail=f"Producto {producto_id} no encontrado")
         if producto.stock < cantidad:
@@ -46,6 +48,7 @@ def crear_pedido(db: Session, datos: PedidoCreate) -> Pedido:
         comprobante_nombre=datos.comprobante_nombre,
         pago_verificado=(datos.metodo_pago != "Transferencia"),
         telegram_user_id=datos.telegram_user_id,
+        alias_cliente=datos.alias_cliente,
         total=total,
     )
     db.add(pedido)

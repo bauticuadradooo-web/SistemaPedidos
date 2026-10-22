@@ -65,6 +65,11 @@
       <div class="bar"><h2 id="orders-title">Pedidos</h2><span id="updated" class="hint"></span></div>
       <div class="table-wrap"><table><thead id="orders-head"></thead><tbody id="orders-body"></tbody></table></div>
     </section>
+    <section class="card hidden" id="refunds-card">
+      <div class="bar"><h2>Devoluciones por cancelación del cliente</h2></div>
+      <p class="hint">Aparecen automáticamente los pedidos por transferencia cancelados por el cliente, incluso de días archivados. Revisá el pago y la cuenta de origen antes de devolver desde tu banco o billetera. El sistema registra la operación y envía el comprobante; no transfiere dinero.</p>
+      <div class="table-wrap"><table><thead><tr><th>Pedido / Cliente</th><th>Cuenta de origen informada</th><th>Importe de referencia</th><th>Devolución / Comprobante</th></tr></thead><tbody id="refunds-body"></tbody></table></div>
+    </section>
     <section class="card hidden" id="delivered-card">
       <div class="bar"><h2>Registro de pedidos entregados</h2><span class="hint">Historial guardado de ventas completadas</span></div>
       <div class="table-wrap"><table><thead><tr><th>Pedido / Cliente</th><th>Dirección</th><th>Artículos</th><th>Total</th><th>Pago</th><th>Comprobante</th><th>Estado</th></tr></thead><tbody id="delivered-body"></tbody></table></div>
@@ -82,17 +87,49 @@
         <div class="field"><label for="new-stock">Stock inicial</label><input id="new-stock" type="number" min="0" step="1" value="0" required></div>
         <button type="submit">Agregar producto</button>
       </div></form>
-      <p class="hint">Escribí el stock y presioná Guardar, o usá +/− para sumar o restar una unidad al instante. Para corregir nombre o precio, editá el campo y presioná Guardar.</p>
+      <p class="hint" id="stock-help">Las bajas requieren un motivo. El stock disponible ya excluye los productos reservados en pedidos: para quitar esos productos, usá «Quitar productos» en el pedido.</p>
+      <div class="field" style="max-width:420px;margin-bottom:14px"><label for="stock-search">Buscar producto o código</label><input id="stock-search" type="search" placeholder="Ej.: Fernet" oninput="filtrarProductos()"></div>
       <div class="table-wrap"><table><thead><tr><th>Producto</th><th>Precio</th><th>Disponible</th><th></th></tr></thead><tbody id="products-body"></tbody></table></div>
     </section>
+    <section class="card hidden" id="stock-history-card"><div class="bar"><h2>Movimientos de stock</h2><span class="hint">Últimos 100 · Un ajuste sin pedido no envía mensajes a clientes</span></div><div class="table-wrap"><table><thead><tr><th>Fecha / Usuario</th><th>Producto</th><th>Variación</th><th>Pedido</th><th>Motivo</th></tr></thead><tbody id="stock-history-body"></tbody></table></div></section>
   </main>
+  <dialog id="change-dialog" aria-labelledby="change-title" style="border:1px solid #d4ddd6;border-radius:15px;padding:24px;width:min(520px,94vw);max-height:90vh;overflow:auto">
+    <form id="change-form">
+      <h2 id="change-title" style="margin-top:0"></h2><p id="change-help" class="hint"></p>
+      <div class="field" id="line-field"><label for="change-line">Producto del pedido</label><select id="change-line" style="width:100%"></select></div>
+      <div class="field" id="quantity-field"><label for="change-quantity">Cantidad de unidades</label><input id="change-quantity" type="number" min="1" step="1" value="1"></div>
+      <div class="field" id="return-field"><label for="change-return">¿Qué pasa con las unidades quitadas?</label><select id="change-return" style="width:100%"><option value="">Elegí una opción</option><option value="false">No vuelven al stock: faltante, rotura o pérdida</option><option value="true">Vuelven al stock: unidades disponibles para vender</option></select></div>
+      <div class="field" id="related-field"><label for="change-related">Pedido relacionado para avisar por Telegram</label><select id="change-related" style="width:100%"></select></div>
+      <div class="field"><label for="change-reason">Motivo</label><select id="change-reason" style="width:100%" required></select></div>
+      <div class="field"><label for="change-description">Explicación para el cliente / historial</label><textarea id="change-description" required minlength="3" maxlength="800" rows="4" style="width:100%;font:inherit;padding:9px;border:1px solid #d4ddd6;border-radius:7px"></textarea></div>
+      <p id="change-error" role="alert" style="color:#9b342e"></p>
+      <div class="actions"><button id="change-submit" type="submit">Guardar y avisar</button><button type="button" class="secondary" id="change-close" onclick="document.querySelector('#change-dialog').close()">Volver</button></div>
+    </form>
+  </dialog>
+  <dialog id="refund-dialog" aria-labelledby="refund-title" style="border:1px solid #d4ddd6;border-radius:15px;padding:24px;width:min(560px,94vw);max-height:90vh;overflow:auto">
+    <form id="refund-form">
+      <h2 id="refund-title">Devolver dinero al mismo alias</h2>
+      <p class="hint">Realizá la devolución desde tu banco o billetera a la misma cuenta que originó el pago. Luego cargá acá el comprobante real para enviarlo al cliente por Telegram.</p>
+      <div class="field"><label for="refund-alias">Alias / CBU / CVU informado por el cliente</label><input id="refund-alias" readonly></div>
+      <p id="refund-review" class="hint"></p>
+      <div class="field"><label for="refund-amount">Importe efectivamente devuelto ($)</label><input id="refund-amount" type="number" min="0.01" max="999999999999.99" step="0.01" required></div>
+      <div class="field"><label for="refund-file">Comprobante real de devolución (PDF, JPG o PNG; hasta 5 MB)</label><input id="refund-file" type="file" accept="application/pdf,image/jpeg,image/png" required></div>
+      <label style="display:flex;gap:10px;align-items:flex-start;margin:16px 0"><input id="refund-origin" type="checkbox" required style="width:auto;margin-top:3px"><span>Verifiqué el ingreso del pago y que esta cuenta corresponde a la misma cuenta de origen.</span></label>
+      <label style="display:flex;gap:10px;align-items:flex-start;margin:16px 0"><input id="refund-done" type="checkbox" required style="width:auto;margin-top:3px"><span>Ya realicé la transferencia de devolución por el importe indicado. Adjunto su comprobante.</span></label>
+      <p id="refund-error" role="alert" style="color:#9b342e"></p>
+      <div class="actions"><button id="refund-submit" type="submit">Registrar devolución y enviar comprobante</button><button id="refund-close" class="secondary" type="button" onclick="document.querySelector('#refund-dialog').close()">Volver</button></div>
+    </form>
+  </dialog>
   <script>
     const estados=['pendiente','preparando','listo_para_despacho','en_camino','entregado'];
     const nombresEstado={pendiente:'Pendiente',preparando:'En preparación',listo_para_despacho:'Listo para despacho',en_camino:'En camino',entregado:'Entregado',cancelado:'Cancelado'};
     const dinero=n=>new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(Number(n)||0);
+    const dineroReintegro=n=>new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(n)||0);
     let usuarioActual=null;
     let cerrandoSesion=false;
     let cargaEnCurso=false;
+    let pedidosActuales=[],productosActuales=[],cambioActual=null;
+    let devolucionesActuales=[],devolucionActual=null;
     function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
     function avisar(t,tipo='ok'){let n=document.querySelector('#notice');n.textContent=t;n.className='message '+tipo;setTimeout(()=>n.className='message',4500)}
     async function api(url,options={}){let r;try{r=await fetch(url,{...options,signal:options.signal||AbortSignal.timeout(15000),cache:'no-store',headers:{'Content-Type':'application/json',...(options.headers||{})}})}catch(e){if(e.name==='TimeoutError'||e.name==='AbortError')throw Error('El panel tardó demasiado en responder. Esperá unos segundos y volvé a intentar.');throw e}let d={};try{d=await r.json()}catch{}if(r.status===401){if(!cerrandoSesion)location.replace('/?sesion='+Date.now());throw Error('La sesión venció. Iniciá sesión otra vez.')}if(!r.ok)throw Error(d.detail||'No se pudo completar la operación');return d}
@@ -106,8 +143,13 @@
       document.querySelector('#day-controls').classList.toggle('hidden',!admin);
       document.querySelector('#delivered-card').classList.toggle('hidden',!admin);
       document.querySelector('#days-card').classList.toggle('hidden',!admin);
-      document.querySelector('#products-card').classList.toggle('hidden',!admin);
+      const inventario=admin||usuarioActual.rol==='preparador';
+      document.querySelector('#products-card').classList.toggle('hidden',!inventario);
+      document.querySelector('#product-form').classList.toggle('hidden',!admin);
+      document.querySelector('#stock-history-card').classList.toggle('hidden',!inventario);
+      document.querySelector('#products-card thead').innerHTML=admin?'<tr><th>Producto / Código</th><th>Precio</th><th>Disponible</th><th></th></tr>':'<tr><th>Producto / Código</th><th>Disponible</th><th>Acción</th></tr>';
       document.querySelector('#backup-card').classList.toggle('hidden',!admin);
+      document.querySelector('#refunds-card').classList.toggle('hidden',!admin);
       document.querySelector('#orders-title').textContent=usuarioActual.rol==='preparador'?'Pedidos para preparar':usuarioActual.rol==='despachante'?'Pedidos para despachar':'Pedidos recibidos por Telegram';
       if(usuarioActual.rol==='preparador')document.querySelector('#orders-head').innerHTML='<tr><th>Pedido</th><th>Artículos y cantidades</th><th>Estado</th><th>Acción</th></tr>';
       else if(usuarioActual.rol==='despachante')document.querySelector('#orders-head').innerHTML='<tr><th>Pedido / Cliente</th><th>Dirección y contacto</th><th>Artículos</th><th>Total</th><th>Pago / cambio</th><th>Comprobante</th><th>Estado</th><th>Acción</th></tr>';
@@ -120,12 +162,14 @@
         usuarioActual=usuarioActual||await api('/auth/me');
         configurarVista();
         let pedidos=await api('/pedidos/todos');
-        let productos=usuarioActual.rol==='administrador'?await api('/productos'):[];
+        let productos=['administrador','preparador'].includes(usuarioActual.rol)?await api('/productos'):[];
+        pedidosActuales=pedidos;productosActuales=productos;
         let jornada=null;let jornadas=[];
         if(usuarioActual.rol==='administrador'){
-          [jornada,jornadas]=await Promise.all([api('/jornadas/actual'),api('/jornadas/historial')]);
+          [jornada,jornadas,devolucionesActuales]=await Promise.all([api('/jornadas/actual'),api('/jornadas/historial'),api('/devoluciones')]);
           document.querySelector('#current-day-label').textContent=fechaBonita(jornada.fecha);
           dibujarDias(jornadas);
+          dibujarDevoluciones();
         }
         let activos=pedidos.filter(p=>!['entregado','cancelado'].includes(p.estado));
         let ventas=pedidos.filter(p=>p.estado==='entregado');
@@ -138,20 +182,26 @@
         }
         document.querySelector('#updated').textContent='Actualizado '+new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
         dibujarPedidos(usuarioActual.rol==='administrador'?pedidos.filter(p=>p.estado!=='entregado'):pedidos);
-        if(usuarioActual.rol==='administrador'){dibujarHistorial(ventas);dibujarProductos(productos)}
+        if(usuarioActual.rol==='administrador')dibujarHistorial(ventas);
+        if(['administrador','preparador'].includes(usuarioActual.rol)){filtrarProductos();dibujarMovimientos(await api('/movimientos-stock'))}
       }catch(e){if(!String(e.message).includes('sesión')&&!cerrandoSesion)avisar(e.message,'error')}
       finally{cargaEnCurso=false}
     }
-    function articulosHtml(p){return (p.detalles||[]).map(d=>`<div>${esc(d.producto)} × ${d.cantidad}</div>`).join('')||'—'}
+    function articulosHtml(p){return ((p.detalles||[]).map(d=>`<div>${esc(d.producto)} × ${d.cantidad}</div>`).join('')||'—')+eventosHtml(p)}
+    function eventosHtml(p){if(!p.eventos?.length)return '';return `<details style="margin-top:10px;max-width:370px"><summary>Motivos y avisos (${p.eventos.length})</summary>${p.eventos.map(e=>`<div style="margin-top:10px;white-space:pre-wrap">${esc(e.descripcion)}<div class="hint">${esc(new Date(e.fecha).toLocaleString('es-AR'))} · ${esc(e.autor)}</div><div class="${e.notificado?'pay-ok':'pay-pending'}">${e.notificado?'Telegram recibió el aviso':e.telegram_disponible?'Aviso pendiente / no enviado':'Sin cuenta de Telegram vinculada'}</div>${!e.notificado&&e.telegram_disponible?`<button type="button" class="secondary" onclick="reenviarAviso(${p.id},${e.id})">Reintentar aviso</button>`:''}</div>`).join('')}</details>`}
     function entregaHtml(p){if(!Number(p.costo_envio))return '';const zona=p.zona_entrega==='microcentro'?'Microcentro':'Macrocentro';return `<div class="contact">${zona} · envío ${dinero(p.costo_envio)}</div>`}
     function fechaBonita(fecha){return new Date(`${fecha}T12:00:00`).toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
     function dibujarDias(items){const body=document.querySelector('#days-body');body.innerHTML=items.length?items.map(d=>`<tr><td><strong>${esc(fechaBonita(d.fecha))}</strong></td><td>${d.cantidad_pedidos}</td><td>${dinero(d.total_ventas)}</td><td><button class="secondary" type="button" onclick="verDia(${d.id},'${esc(d.fecha)}')">Ver pedidos</button></td></tr>`).join(''):'<tr><td colspan="4" class="empty">Todavía no hay días finalizados.</td></tr>'}
     async function verDia(id,fecha){try{const pedidos=await api(`/jornadas/${id}/pedidos`);document.querySelector('#archive-title').textContent=`Pedidos del ${fechaBonita(fecha)}`;const body=document.querySelector('#archive-orders-body');body.innerHTML=pedidos.length?pedidos.map(p=>`<tr><td><strong>#${p.id}</strong><br>${esc(p.cliente)}</td><td>${esc(p.direccion)}<div class="contact">${esc(p.telefono||'Sin teléfono')}</div>${entregaHtml(p)}</td><td class="detail">${articulosHtml(p)}</td><td>${dinero(p.total)}</td><td>${pagoHtml(p)}</td><td>${comprobanteHtml(p)}</td><td>${estadoHtml(p.estado)}</td></tr>`).join(''):'<tr><td colspan="7" class="empty">Ese día no tuvo pedidos.</td></tr>';document.querySelector('#archive-detail').classList.remove('hidden')}catch(e){avisar(e.message,'error')}}
-    async function finalizarDia(){if(!confirm('¿Finalizar este día? Se archivarán sus pedidos y ventas. Todos deben estar entregados o cancelados.'))return;try{const resultado=await api('/jornadas/finalizar',{method:'POST'});const copia=resultado.respaldo?` Copia guardada: ${resultado.respaldo}.`:'';avisar(`Día archivado. Ya está abierto el ${fechaBonita(resultado.proxima_fecha)}.${copia}${resultado.aviso_respaldo?' '+resultado.aviso_respaldo:''}`,resultado.aviso_respaldo?'error':'ok');document.querySelector('#archive-detail').classList.add('hidden');await cargarTodo()}catch(e){avisar(e.message,'error')}}
+    async function finalizarDia(){if(!confirm('¿Finalizar este día? Se archivarán sus pedidos y ventas. Todos deben estar entregados o cancelados.'))return;try{const resultado=await api('/jornadas/finalizar',{method:'POST'});const copia=resultado.respaldo?` Copia completa: ${resultado.respaldo}. Informe legible: ${resultado.informe_respaldo}.`:'';avisar(`Día archivado. Ya está abierto el ${fechaBonita(resultado.proxima_fecha)}.${copia}${resultado.aviso_respaldo?' '+resultado.aviso_respaldo:''}`,resultado.aviso_respaldo?'error':'ok');document.querySelector('#archive-detail').classList.add('hidden');await cargarTodo()}catch(e){avisar(e.message,'error')}}
     function accionesEstado(p){
       if(p.estado==='cancelado')return estadoHtml('cancelado');
-      let opciones=usuarioActual.rol==='preparador'?(p.estado==='pendiente'?[['preparando','En preparación']]:[['listo_para_despacho','Listo para despacho']]):usuarioActual.rol==='despachante'?(p.estado==='en_camino'?[['entregado','Entregado']]:[['en_camino','En camino']]):[...estados.map(e=>[e,nombresEstado[e]]),['cancelado','Cancelar pedido']];
-      return `<div class="actions"><select id="status-${p.id}">${opciones.map(([v,n])=>`<option value="${v}" ${p.estado===v?'selected':''}>${n}</option>`).join('')}</select><button class="secondary" onclick="actualizarEstado(${p.id})">Guardar</button></div>`;
+      const siguientes={pendiente:'preparando',preparando:'listo_para_despacho',listo_para_despacho:'en_camino',en_camino:'entregado'};
+      let opciones=usuarioActual.rol==='preparador'?(p.estado==='pendiente'?[['preparando','En preparación']]:[['listo_para_despacho','Listo para despacho']]):usuarioActual.rol==='despachante'?(p.estado==='en_camino'?[['entregado','Entregado']]:[['en_camino','En camino']]):[[p.estado,nombresEstado[p.estado]],...(siguientes[p.estado]?[[siguientes[p.estado],nombresEstado[siguientes[p.estado]]]]:[]),...(['pendiente','preparando','listo_para_despacho'].includes(p.estado)?[['cancelado','Cancelar pedido completo']]:[])];
+      let extra='';
+      if(['administrador','preparador'].includes(usuarioActual.rol)&&['pendiente','preparando','listo_para_despacho'].includes(p.estado))extra+=`<button class="secondary" onclick="abrirCambio('parcial',${p.id})">Quitar productos</button>`;
+      if(['administrador','despachante'].includes(usuarioActual.rol)&&['listo_para_despacho','en_camino'].includes(p.estado))extra+=`<button class="secondary" onclick="abrirCambio('delivery',${p.id})">Novedad del delivery</button>`;
+      return `<div class="actions"><select id="status-${p.id}">${opciones.map(([v,n])=>`<option value="${v}" ${p.estado===v?'selected':''}>${n}</option>`).join('')}</select><button class="secondary" onclick="actualizarEstado(${p.id})">Guardar estado</button>${extra}</div>`;
     }
     function estadoHtml(estado){const clases={pendiente:'estado-pendiente',preparando:'estado-preparando',listo_para_despacho:'estado-listo',en_camino:'estado-camino',entregado:'estado-entregado',cancelado:'estado-cancelado'};return `<span class="pill ${clases[estado]||''}">${esc(nombresEstado[estado]||estado)}</span>`}
     function pagoHtml(p){let texto=esc(p.metodo_pago||'A coordinar');if(p.metodo_pago==='Efectivo')texto+=`<div class="contact">Paga con ${dinero(p.monto_efectivo)} · Llevar ${dinero(p.cambio)} de cambio</div>`;if(p.metodo_pago==='Transferencia')texto+=`<div class="contact ${p.pago_verificado?'pay-ok':'pay-pending'}">${p.pago_verificado?'Transferencia verificada':'Pendiente de verificar'}</div>`;return texto}
@@ -169,14 +219,72 @@
       if(!items.length){body.innerHTML='<tr><td colspan="7" class="empty">Todavía no hay pedidos entregados.</td></tr>';return}
       body.innerHTML=items.map(p=>`<tr><td><strong>#${p.id}</strong><br>${esc(p.cliente)}</td><td>${esc(p.direccion)}<div class="contact">${esc(p.telefono||'Sin teléfono')}</div>${entregaHtml(p)}</td><td class="detail">${articulosHtml(p)}</td><td>${dinero(p.total)}</td><td>${pagoHtml(p)}</td><td>${comprobanteHtml(p)}</td><td>${estadoHtml('entregado')}</td></tr>`).join('');
     }
-    function dibujarProductos(items){document.querySelector('#products-body').innerHTML=items.length?items.map(p=>`<tr><td><input class="product-name" id="name-${p.id}" maxlength="120" value="${esc(p.nombre)}" aria-label="Nombre de ${esc(p.nombre)}"></td><td><input id="price-${p.id}" type="number" min="0.01" step="0.01" value="${p.precio}" style="max-width:125px" aria-label="Precio de ${esc(p.nombre)}"></td><td><div class="stock-control"><button class="secondary" type="button" aria-label="Restar una unidad de ${esc(p.nombre)}" onclick="ajustarStock(${p.id},-1)">−</button><input id="stock-${p.id}" type="number" min="0" step="1" inputmode="numeric" value="${p.stock}" class="${p.stock===0?'stock-low':''}" aria-label="Stock de ${esc(p.nombre)}"><button class="secondary" type="button" aria-label="Agregar una unidad de ${esc(p.nombre)}" onclick="ajustarStock(${p.id},1)">+</button></div></td><td><button class="secondary" onclick="guardarProducto(${p.id})">Guardar</button></td></tr>`).join(''):'<tr><td colspan="4" class="empty">Agregá los productos que ofrecerá el bot.</td></tr>'}
+    function normalizar(t){return String(t).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()}
+    function filtrarProductos(){const q=normalizar(document.querySelector('#stock-search').value.trim());dibujarProductos(productosActuales.filter(p=>normalizar(p.nombre).includes(q)||String(p.id)===q))}
+    function dibujarProductos(items){const admin=usuarioActual.rol==='administrador';document.querySelector('#products-body').innerHTML=items.length?items.map(p=>admin?`<tr><td><span class="hint">Código ${p.id}</span><input class="product-name" id="name-${p.id}" maxlength="120" value="${esc(p.nombre)}" aria-label="Nombre de ${esc(p.nombre)}"></td><td><input id="price-${p.id}" type="number" min="0.01" step="0.01" value="${p.precio}" style="max-width:125px" aria-label="Precio de ${esc(p.nombre)}"></td><td><div class="stock-control"><button class="secondary" type="button" aria-label="Registrar baja de ${esc(p.nombre)}" onclick="abrirCambio('stock',${p.id},-1)">−</button><input id="stock-${p.id}" type="number" min="0" step="1" inputmode="numeric" value="${p.stock}" class="${p.stock===0?'stock-low':''}" aria-label="Stock de ${esc(p.nombre)}"><button class="secondary" type="button" aria-label="Registrar ingreso de ${esc(p.nombre)}" onclick="abrirCambio('stock',${p.id},1)">+</button></div></td><td><button class="secondary" onclick="guardarProducto(${p.id})">Guardar</button></td></tr>`:`<tr><td>${esc(p.nombre)}<div class="hint">Código ${p.id}</div></td><td class="${p.stock===0?'stock-low':''}">${p.stock} unidades</td><td><button class="secondary" onclick="abrirCambio('stock',${p.id},-1)">Registrar baja</button></td></tr>`).join(''):`<tr><td colspan="4" class="empty">No hay productos que coincidan.</td></tr>`}
+    function dibujarMovimientos(items){document.querySelector('#stock-history-body').innerHTML=items.length?items.map(m=>`<tr><td>${esc(new Date(m.fecha).toLocaleString('es-AR'))}<div class="hint">${esc(m.autor)}</div></td><td>${esc(m.producto)}</td><td>${m.delta>0?'+':''}${m.delta}</td><td>${m.pedido_id?'#'+m.pedido_id:'—'}</td><td>${esc(m.motivo)}</td></tr>`).join(''):'<tr><td colspan="5" class="empty">Sin movimientos registrados.</td></tr>'}
     document.querySelector('#product-form').addEventListener('submit',async e=>{e.preventDefault();try{await api('/productos',{method:'POST',body:JSON.stringify({nombre:document.querySelector('#new-name').value.trim(),precio:Number(document.querySelector('#new-price').value),stock:Number(document.querySelector('#new-stock').value)})});e.target.reset();document.querySelector('#new-stock').value=0;avisar('Producto agregado al catálogo.');await cargarTodo()}catch(err){avisar(err.message,'error')}});
     async function actualizarEstado(id){try{let estado=document.querySelector('#status-'+id).value;if(estado==='cancelado'&&!confirm(`¿Cancelar el pedido #${id}? Se devolverán sus productos al stock.`))return;await api(`/pedidos/${id}/estado?nuevo_estado=${estado}`,{method:'PUT'});avisar(`Pedido #${id}: ${nombresEstado[estado]}.`);await cargarTodo()}catch(e){avisar(e.message,'error')}}
     async function verificarPago(id){try{await api(`/pedidos/${id}/pago-verificado`,{method:'PUT'});avisar(`Transferencia del pedido #${id} marcada como verificada.`);await cargarTodo()}catch(e){avisar(e.message,'error')}}
-    async function crearRespaldo(){try{const copia=await api('/respaldos/crear',{method:'POST'});avisar(`Copia creada en ${copia.ubicacion} (${Math.ceil(copia.bytes/1024)} KB).`)}catch(e){avisar(e.message,'error')}}
+    async function crearRespaldo(){try{const copia=await api('/respaldos/crear',{method:'POST'});avisar(`Copia completa: ${copia.ubicacion}. Informe para abrir con doble clic: ${copia.informe}.`)}catch(e){avisar(e.message,'error')}}
     async function guardarProducto(id){try{await api(`/productos/${id}`,{method:'PUT',body:JSON.stringify({nombre:document.querySelector('#name-'+id).value.trim(),precio:Number(document.querySelector('#price-'+id).value),stock:Number(document.querySelector('#stock-'+id).value)})});avisar('Producto actualizado; el bot ya usa el nombre y precio nuevos.');await cargarTodo()}catch(e){avisar(e.message,'error')}}
-    async function ajustarStock(id,delta){try{let producto=await api(`/productos/${id}/stock`,{method:'PATCH',body:JSON.stringify({delta})});let campo=document.querySelector('#stock-'+id);campo.value=producto.stock;campo.classList.toggle('stock-low',producto.stock===0);avisar(`Stock actualizado: ${producto.nombre} tiene ${producto.stock} unidades.`)}catch(e){avisar(e.message,'error')}}
-    cargarTodo();setInterval(()=>{const editando=document.querySelector('input:focus,select:focus,textarea:focus');if(!cerrandoSesion&&!document.hidden&&!editando)cargarTodo()},30000);
+    function abrirCambio(tipo,id,signo=-1){
+      const form=document.querySelector('#change-form');form.reset();document.querySelector('#change-error').textContent='';
+      cambioActual={tipo,id,signo};const parcial=tipo==='parcial',stock=tipo==='stock';
+      document.querySelector('#line-field').classList.toggle('hidden',!parcial);
+      document.querySelector('#quantity-field').classList.toggle('hidden',tipo==='delivery');
+      document.querySelector('#return-field').classList.toggle('hidden',!parcial);
+      document.querySelector('#related-field').classList.toggle('hidden',!stock);
+      document.querySelector('#change-return').required=parcial;document.querySelector('#change-quantity').required=tipo!=='delivery';
+      const p=pedidosActuales.find(p=>p.id===id),producto=productosActuales.find(p=>p.id===id);
+      document.querySelector('#change-title').textContent=parcial?`Quitar productos · Pedido #${id}`:stock?`${signo<0?'Baja':'Ingreso'} de stock · ${producto.nombre}`:`Novedad del delivery · Pedido #${id}`;
+      document.querySelector('#change-help').textContent=parcial?'Se recalcula el total y se explica el motivo al cliente. Debe quedar al menos una unidad en el pedido. Si ya pagó, coordiná el reintegro de lo quitado.':stock?'Ajusta solo unidades disponibles. Si el problema afecta productos ya reservados, usá «Quitar productos» en el pedido. Sin pedido relacionado, el motivo queda en el historial y no se envía a clientes.':'Explicá la demora, el inconveniente o su resolución. Se informa al cliente sin marcar el pedido como entregado ni cancelarlo.';
+      document.querySelector('#change-line').innerHTML=parcial?p.detalles.map(d=>`<option value="${d.detalle_id}" data-max="${d.cantidad}">${esc(d.producto)} · ${d.cantidad} unidades</option>`).join(''):'';
+      const relacionados=stock?pedidosActuales.filter(p=>['pendiente','preparando','listo_para_despacho'].includes(p.estado)&&p.detalles.some(d=>d.producto_id===id)):[];
+      document.querySelector('#change-related').innerHTML='<option value="">Sin pedido · solo historial</option>'+relacionados.map(p=>`<option value="${p.id}">Pedido #${p.id}</option>`).join('');
+      const motivos=tipo==='delivery'?['Demora','Problema con el vehículo','Accidente o imprevisto','Problema con la dirección','Inconveniente resuelto','Otro']:['Rotura','Vencimiento / mal estado','Faltante de mercadería','Error de inventario','Cambio solicitado por el cliente','Otro'];
+      document.querySelector('#change-reason').innerHTML='<option value="">Elegí un motivo</option>'+motivos.map(m=>`<option>${esc(m)}</option>`).join('');
+      const cantidad=document.querySelector('#change-quantity');cantidad.value=1;cantidad.max=parcial?p.detalles[0]?.cantidad:stock&&signo<0?producto.stock:'';
+      document.querySelector('#change-submit').textContent=stock?'Guardar ajuste':'Guardar y avisar';
+      document.querySelector('#change-dialog').showModal();
+    }
+    document.querySelector('#change-line').addEventListener('change',e=>{document.querySelector('#change-quantity').max=e.target.selectedOptions[0]?.dataset.max||''});
+    document.querySelector('#change-dialog').addEventListener('cancel',e=>{if(document.querySelector('#change-submit').disabled)e.preventDefault()});
+    document.querySelector('#change-form').addEventListener('submit',async e=>{
+      e.preventDefault();const {tipo,id,signo}=cambioActual;const submit=document.querySelector('#change-submit'),close=document.querySelector('#change-close');if(submit.disabled)return;
+      const descripcion=document.querySelector('#change-description').value.trim();if(descripcion.length<3){document.querySelector('#change-error').textContent='Explicá el motivo con al menos 3 caracteres.';return}
+      const motivo=document.querySelector('#change-reason').value+': '+descripcion,cantidad=Number(document.querySelector('#change-quantity').value);
+      let url,method='POST',datos;
+      if(tipo==='parcial'){url=`/pedidos/${id}/cancelacion-parcial`;datos={detalle_id:Number(document.querySelector('#change-line').value),cantidad,motivo,reponer_stock:document.querySelector('#change-return').value==='true'}}
+      else if(tipo==='stock'){url=`/productos/${id}/stock`;method='PATCH';datos={delta:signo*cantidad,motivo,pedido_id:Number(document.querySelector('#change-related').value)||null}}
+      else{url=`/pedidos/${id}/incidencias-delivery`;datos={motivo}}
+      submit.disabled=true;close.disabled=true;
+      try{const resultado=await api(url,{method,body:JSON.stringify(datos)});document.querySelector('#change-dialog').close();avisar(resultado.mensaje||'Ajuste guardado. Si elegiste un pedido, consultá el aviso en su historial.');await cargarTodo()}
+      catch(err){document.querySelector('#change-error').textContent=err.message}
+      finally{submit.disabled=false;close.disabled=false}
+    });
+    async function reenviarAviso(pedidoId,eventoId){try{const resultado=await api(`/pedidos/${pedidoId}/eventos/${eventoId}/reenviar`,{method:'POST'});avisar(resultado.mensaje);await cargarTodo()}catch(e){avisar(e.message,'error')}}
+    function dibujarDevoluciones(){document.querySelector('#refunds-body').innerHTML=devolucionesActuales.length?devolucionesActuales.map(p=>{
+      const d=p.devolucion;
+      let accion=d?`<div class="pay-ok">Devolución registrada: ${dineroReintegro(d.importe)}</div><div class="contact">Cuenta: ${esc(d.alias_destino)}</div><a class="receipt" href="/devoluciones/${d.id}/comprobante">Ver comprobante</a><div class="${d.enviado_telegram?'pay-ok':'pay-pending'}">${d.enviado_telegram?'Telegram recibió el comprobante':'Comprobante pendiente de envío por Telegram'}</div>${!d.enviado_telegram?`<button type="button" class="secondary" onclick="reenviarDevolucion(${d.id})">Reintentar envío del comprobante</button>`:''}`:`<button type="button" ${p.alias_cliente?'':'disabled'} onclick="abrirDevolucion(${p.pedido_id})">Devolver dinero al mismo alias</button>${!p.alias_cliente?`<div class="pay-pending">Esperando cuenta del cliente. Debe enviar por Telegram: /alias_devolucion ${p.pedido_id} SU_ALIAS</div>`:''}<div class="hint">${p.pago_verificado?'Pago marcado como verificado':'Revisar el ingreso original antes de devolver'}</div>`;
+      return `<tr><td><strong>#${p.pedido_id}</strong><br>${esc(p.cliente)}<div class="pill estado-cancelado">Cancelado por el cliente</div></td><td>${esc(p.alias_cliente||'No informada')}<div class="hint">Debe coincidir con la cuenta que originó el pago.</div></td><td>${dineroReintegro(p.importe_sugerido)}${p.parcial_previa?'<div class="pay-pending">Hubo cambios parciales: revisar el pago original y los reintegros previos.</div>':''}</td><td>${accion}</td></tr>`
+    }).join(''):'<tr><td colspan="4" class="empty">No hay transferencias canceladas por clientes para gestionar.</td></tr>'}
+    function abrirDevolucion(pedidoId){devolucionActual=devolucionesActuales.find(p=>p.pedido_id===pedidoId);if(!devolucionActual?.alias_cliente)return;document.querySelector('#refund-form').reset();document.querySelector('#refund-title').textContent=`Devolver dinero al mismo alias · Pedido #${pedidoId}`;document.querySelector('#refund-alias').value=devolucionActual.alias_cliente;document.querySelector('#refund-amount').value=Number(devolucionActual.importe_sugerido).toFixed(2);document.querySelector('#refund-review').textContent=devolucionActual.parcial_previa?'Hubo una cancelación parcial previa. Revisá el monto recibido y cualquier reintegro ya realizado; el total actual del pedido puede ser distinto del pago original.':'El importe de referencia incluye el envío. Confirmá el monto realmente recibido y que corresponda devolverlo.';document.querySelector('#refund-error').textContent='';document.querySelector('#refund-dialog').showModal()}
+    document.querySelector('#refund-dialog').addEventListener('cancel',e=>{if(document.querySelector('#refund-submit').disabled)e.preventDefault()});
+    document.querySelector('#refund-form').addEventListener('submit',async e=>{
+      e.preventDefault();const submit=document.querySelector('#refund-submit'),close=document.querySelector('#refund-close');if(submit.disabled)return;
+      const file=document.querySelector('#refund-file').files[0];if(!file||file.size>5*1024*1024||file.size===0){document.querySelector('#refund-error').textContent='Elegí un comprobante de hasta 5 MB.';return}
+      const mime=file.type||({'pdf':'application/pdf','jpg':'image/jpeg','jpeg':'image/jpeg','png':'image/png'}[file.name.split('.').pop().toLowerCase()]);
+      if(!['application/pdf','image/jpeg','image/png'].includes(mime)){document.querySelector('#refund-error').textContent='El comprobante debe ser PDF, JPG o PNG.';return}
+      submit.disabled=true;close.disabled=true;document.querySelector('#refund-error').textContent='';
+      try{const encoded=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(',')[1]);reader.onerror=()=>reject(Error('No pude leer el archivo.'));reader.readAsDataURL(file)});
+        const resultado=await api(`/devoluciones/pedidos/${devolucionActual.pedido_id}`,{method:'POST',body:JSON.stringify({alias_destino:devolucionActual.alias_cliente,importe:document.querySelector('#refund-amount').value,archivo_base64:encoded,mime_type:mime,origen_verificado:document.querySelector('#refund-origin').checked,transferencia_realizada:document.querySelector('#refund-done').checked})});document.querySelector('#refund-dialog').close();avisar(resultado.mensaje);await cargarTodo();
+      }catch(err){document.querySelector('#refund-error').textContent=err.message}
+      finally{submit.disabled=false;close.disabled=false}
+    });
+    async function reenviarDevolucion(id){try{const resultado=await api(`/devoluciones/${id}/reenviar`,{method:'POST'});avisar(resultado.mensaje);await cargarTodo()}catch(e){avisar(e.message,'error')}}
+    cargarTodo();setInterval(()=>{const editando=document.querySelector('input:focus,select:focus,textarea:focus');if(!cerrandoSesion&&!document.hidden&&!editando&&!document.querySelector('dialog[open]'))cargarTodo()},30000);
   </script>
 </body>
 </html>
+

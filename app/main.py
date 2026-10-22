@@ -11,7 +11,7 @@ from app.database import engine, Base, SessionLocal
 from app import models
 from app.auth import usuario_de_sesion, SESSION_COOKIE
 from app.services.jornadas import jornada_actual
-from app.routers import auth, jornadas, pedidos, productos, respaldos, telegram
+from app.routers import auth, jornadas, pedidos, productos, respaldos, telegram, devoluciones
 
 Base.metadata.create_all(bind=engine)
 
@@ -29,6 +29,7 @@ for nombre_columna, tipo_sql in [
     ("pago_verificado", "BOOLEAN NOT NULL DEFAULT FALSE"),
     ("zona_entrega", "VARCHAR"),
     ("costo_envio", "FLOAT NOT NULL DEFAULT 0"),
+    ("alias_cliente", "VARCHAR(80)"),
 ]:
     if nombre_columna not in columnas_pedido:
         with engine.begin() as connection:
@@ -74,3 +75,4 @@ app.include_router(pedidos.router)
 app.include_router(productos.router)
 app.include_router(telegram.router)
 app.include_router(respaldos.router)
+app.include_router(devoluciones.router)

@@ -1,0 +1,69 @@
+C:\Users\bauti\OneDrive\Desktop\SistemaPedidos\SistemaPedidos\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+  from starlette.testclient import TestClient as TestClient  # noqa
+test_bot_confirmacion_revalida_estado (tests.test_cambios.CambiosTest.test_bot_confirmacion_revalida_estado) ... C:\Users\bauti\.codex\.chatgpt-projects\g-p-6abd855a903081918fa047b6c309c963\outputs\DelyDrinks_Entrega\app\auth.py:44: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  expira_en=datetime.utcnow().replace(microsecond=0) + timedelta(hours=SESSION_HOURS),
+ok
+test_cancelacion_concurrente_no_duplica_stock (tests.test_cambios.CambiosTest.test_cancelacion_concurrente_no_duplica_stock) ... C:\Users\bauti\OneDrive\Desktop\SistemaPedidos\SistemaPedidos\.venv\Lib\site-packages\sqlalchemy\sql\schema.py:4296: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore[call-arg, no-any-return, no-untyped-call]  # noqa: E501
+ok
+test_cliente_propietario_solo_pendiente (tests.test_cambios.CambiosTest.test_cliente_propietario_solo_pendiente) ... ok
+test_delivery_motivo_y_roles (tests.test_cambios.CambiosTest.test_delivery_motivo_y_roles) ... C:\Users\bauti\.codex\.chatgpt-projects\g-p-6abd855a903081918fa047b6c309c963\outputs\DelyDrinks_Entrega\app\routers\auth.py:108: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  db.query(SesionPanel).filter(SesionPanel.expira_en <= datetime.utcnow()).delete()
+C:\Users\bauti\.codex\.chatgpt-projects\g-p-6abd855a903081918fa047b6c309c963\outputs\DelyDrinks_Entrega\app\auth.py:54: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  SesionPanel.expira_en > datetime.utcnow(),
+C:\Users\bauti\OneDrive\Desktop\SistemaPedidos\SistemaPedidos\.venv\Lib\site-packages\sqlalchemy\sql\schema.py:4296: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore[call-arg, no-any-return, no-untyped-call]  # noqa: E501
+C:\Users\bauti\.codex\.chatgpt-projects\g-p-6abd855a903081918fa047b6c309c963\outputs\DelyDrinks_Entrega\app\routers\auth.py:108: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  db.query(SesionPanel).filter(SesionPanel.expira_en <= datetime.utcnow()).delete()
+C:\Users\bauti\.codex\.chatgpt-projects\g-p-6abd855a903081918fa047b6c309c963\outputs\DelyDrinks_Entrega\app\auth.py:44: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  expira_en=datetime.utcnow().replace(microsecond=0) + timedelta(hours=SESSION_HOURS),
+ok
+test_limites_y_roles_stock (tests.test_cambios.CambiosTest.test_limites_y_roles_stock) ... C:\Users\bauti\.codex\.chatgpt-projects\g-p-6abd855a903081918fa047b6c309c963\outputs\DelyDrinks_Entrega\app\auth.py:54: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  SesionPanel.expira_en > datetime.utcnow(),
+C:\Users\bauti\.codex\.chatgpt-projects\g-p-6abd855a903081918fa047b6c309c963\outputs\DelyDrinks_Entrega\app\routers\auth.py:108: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  db.query(SesionPanel).filter(SesionPanel.expira_en <= datetime.utcnow()).delete()
+C:\Users\bauti\.codex\.chatgpt-projects\g-p-6abd855a903081918fa047b6c309c963\outputs\DelyDrinks_Entrega\app\auth.py:44: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  expira_en=datetime.utcnow().replace(microsecond=0) + timedelta(hours=SESSION_HOURS),
+ok
+test_parcial_perdida_sin_doble_descuento (tests.test_cambios.CambiosTest.test_parcial_perdida_sin_doble_descuento) ... C:\Users\bauti\OneDrive\Desktop\SistemaPedidos\SistemaPedidos\.venv\Lib\site-packages\sqlalchemy\sql\schema.py:4296: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore[call-arg, no-any-return, no-untyped-call]  # noqa: E501
+ok
+test_parcial_reposicion_y_linea_completa (tests.test_cambios.CambiosTest.test_parcial_reposicion_y_linea_completa) ... ok
+test_parcial_transferencia_registra_reintegro (tests.test_cambios.CambiosTest.test_parcial_transferencia_registra_reintegro) ... ok
+test_parcial_validacion_pertenencia_y_archivo (tests.test_cambios.CambiosTest.test_parcial_validacion_pertenencia_y_archivo) ... ok
+test_preparacion_bloquea_cancelacion_y_retroceso (tests.test_cambios.CambiosTest.test_preparacion_bloquea_cancelacion_y_retroceso) ... ok
+test_preparador_baja_y_busqueda (tests.test_cambios.CambiosTest.test_preparador_baja_y_busqueda) ... ok
+test_telegram_reintento_y_confirmacion (tests.test_cambios.CambiosTest.test_telegram_reintento_y_confirmacion) ... ok
+test_alias_solo_propietario_e_inmutable_tras_registro (tests.test_devoluciones.DevolucionesTest.test_alias_solo_propietario_e_inmutable_tras_registro) ... C:\Users\bauti\.codex\.chatgpt-projects\g-p-6abd855a903081918fa047b6c309c963\outputs\DelyDrinks_Entrega\app\auth.py:54: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  SesionPanel.expira_en > datetime.utcnow(),
+C:\Users\bauti\OneDrive\Desktop\SistemaPedidos\SistemaPedidos\.venv\Lib\site-packages\sqlalchemy\sql\schema.py:4296: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore[call-arg, no-any-return, no-untyped-call]  # noqa: E501
+ok
+test_aparece_automaticamente_y_persiste_al_archivar (tests.test_devoluciones.DevolucionesTest.test_aparece_automaticamente_y_persiste_al_archivar) ... C:\Users\bauti\.codex\.chatgpt-projects\g-p-6abd855a903081918fa047b6c309c963\outputs\DelyDrinks_Entrega\app\auth.py:44: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  expira_en=datetime.utcnow().replace(microsecond=0) + timedelta(hours=SESSION_HOURS),
+ok
+test_bot_guarda_cuenta_para_pedido_anterior (tests.test_devoluciones.DevolucionesTest.test_bot_guarda_cuenta_para_pedido_anterior) ... ok
+test_bot_pide_alias_antes_del_comprobante (tests.test_devoluciones.DevolucionesTest.test_bot_pide_alias_antes_del_comprobante) ... ok
+test_dos_registros_concurrentes_guardan_un_solo_recibo (tests.test_devoluciones.DevolucionesTest.test_dos_registros_concurrentes_guardan_un_solo_recibo) ... ok
+test_envio_archivo_correcto_y_reintento_sin_nueva_devolucion (tests.test_devoluciones.DevolucionesTest.test_envio_archivo_correcto_y_reintento_sin_nueva_devolucion) ... C:\Users\bauti\.codex\.chatgpt-projects\g-p-6abd855a903081918fa047b6c309c963\outputs\DelyDrinks_Entrega\app\services\devoluciones.py:46: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  ahora = datetime.utcnow()
+ok
+test_formato_tamano_e_importe (tests.test_devoluciones.DevolucionesTest.test_formato_tamano_e_importe) ... ok
+test_guarda_recibo_y_no_duplica (tests.test_devoluciones.DevolucionesTest.test_guarda_recibo_y_no_duplica) ... ok
+test_migracion_agrega_alias_sin_perder_pedidos (tests.test_devoluciones.DevolucionesTest.test_migracion_agrega_alias_sin_perder_pedidos) ... ok
+test_no_reclama_envio_en_curso_y_recupera_abandonado (tests.test_devoluciones.DevolucionesTest.test_no_reclama_envio_en_curso_y_recupera_abandonado) ... C:\Users\bauti\.codex\.chatgpt-projects\g-p-6abd855a903081918fa047b6c309c963\outputs\DelyDrinks_Entrega\tests\test_devoluciones.py:137: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  db.get(DevolucionPedido, registro_id).envio_iniciado_en = datetime.utcnow()
+C:\Users\bauti\.codex\.chatgpt-projects\g-p-6abd855a903081918fa047b6c309c963\outputs\DelyDrinks_Entrega\tests\test_devoluciones.py:143: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  db.get(DevolucionPedido, registro_id).envio_iniciado_en = datetime.utcnow() - timedelta(minutes=3)
+ok
+test_permisos_y_recibo_protegido (tests.test_devoluciones.DevolucionesTest.test_permisos_y_recibo_protegido) ... C:\Users\bauti\.codex\.chatgpt-projects\g-p-6abd855a903081918fa047b6c309c963\outputs\DelyDrinks_Entrega\app\routers\auth.py:108: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  db.query(SesionPanel).filter(SesionPanel.expira_en <= datetime.utcnow()).delete()
+ok
+test_sin_alias_y_cancelacion_no_del_cliente (tests.test_devoluciones.DevolucionesTest.test_sin_alias_y_cancelacion_no_del_cliente) ... ok
+
+----------------------------------------------------------------------
+Ran 24 tests in 14.591s
+
+OK
+
+Código de salida: 0

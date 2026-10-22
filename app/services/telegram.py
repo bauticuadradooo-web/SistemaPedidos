@@ -2,6 +2,9 @@ import os
 
 import httpx
 
+from app.database import SessionLocal
+from app.models import EventoPedido, Pedido
+
 
 NOMBRES_ESTADO = {
     "pendiente": "pendiente",
@@ -11,6 +14,35 @@ NOMBRES_ESTADO = {
     "entregado": "entregado",
     "cancelado": "cancelado",
 }
+
+
+def enviar_evento(evento_id: int) -> bool:
+    """Conserva el aviso pendiente si Telegram falla; el panel permite reintentar."""
+    with SessionLocal() as db:
+        registro = db.get(EventoPedido, evento_id)
+        if not registro:
+            return False
+        if registro.notificado:
+            return True
+        pedido = db.get(Pedido, registro.pedido_id)
+        token = os.getenv("TELEGRAM_BOT_TOKEN")
+        if not token or not pedido or not pedido.telegram_user_id:
+            return False
+        try:
+            respuesta = httpx.post(
+                f"https://api.telegram.org/bot{token}/sendMessage",
+                json={"chat_id": pedido.telegram_user_id,
+                      "text": f"Pedido #{pedido.id}\n{registro.descripcion}"},
+                timeout=8,
+            )
+            respuesta.raise_for_status()
+            if not respuesta.json().get("ok"):
+                return False
+        except (httpx.HTTPError, ValueError):
+            return False
+        registro.notificado = True
+        db.commit()
+        return True
 
 
 def notificar_estado(chat_id: str | None, pedido_id: int, estado: str) -> None:

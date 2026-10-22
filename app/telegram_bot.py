@@ -1,5 +1,7 @@
 """Bot de pedidos con long polling. Ejecutar con python -m app.telegram_bot."""
 import os
+import asyncio
+from fastapi import HTTPException
 
 from dotenv import load_dotenv
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
@@ -14,11 +16,15 @@ from telegram.ext import (
 )
 
 from app.database import SessionLocal
-from app.models import Pedido, Producto
+from app.models import Pedido, Producto, EventoPedido
 from app.schemas import DetallePedidoCreate, PedidoCreate
 from app.services.pedidos import COSTO_ENVIO_MICROCENTRO, crear_pedido
+from app.services.cambios import cancelar_por_cliente
+from app.services.telegram import enviar_evento
+from app.services.devoluciones import guardar_alias_cliente, validar_alias
 
 NOMBRE, DIRECCION, TELEFONO, PRODUCTOS, CANTIDAD, PAGO, MONTO_EFECTIVO, COMPROBANTE, CONFIRMAR = range(9)
+ALIAS_TRANSFERENCIA = 9
 
 INFO_COMERCIO = (
     "\n\n📍 Estamos en Mitre 280, Resistencia, Chaco."
@@ -84,6 +90,7 @@ async def enviar_resumen(update: Update, context: ContextTypes.DEFAULT_TYPE, edi
 
     teclado = InlineKeyboardMarkup([
         [InlineKeyboardButton("Confirmar pedido", callback_data="confirmar")],
+        [InlineKeyboardButton("Modificar pedido", callback_data="modificar")],
         [InlineKeyboardButton("Cancelar", callback_data="cancelar")],
     ])
     if editar and update.callback_query:
@@ -93,11 +100,87 @@ async def enviar_resumen(update: Update, context: ContextTypes.DEFAULT_TYPE, edi
     return CONFIRMAR
 
 
-def teclado_productos():
-    productos = leer_catalogo()
-    botones = [[InlineKeyboardButton(f"{p.nombre} · ${precio_texto(p.precio)} · stock {p.stock}", callback_data=f"producto:{p.id}")] for p in productos]
-    botones.append([InlineKeyboardButton("Finalizar pedido", callback_data="finalizar")])
+def cantidad_en_pedido(pedido, producto_id):
+    return next(
+        (detalle["cantidad"] for detalle in pedido["detalles"] if detalle["producto_id"] == producto_id),
+        0,
+    )
+
+
+def teclado_productos(pedido=None):
+    productos = [
+        producto for producto in leer_catalogo()
+        if pedido is None
+        or cantidad_en_pedido(pedido, producto.id) > 0
+        or cantidad_en_pedido(pedido, producto.id) < producto.stock
+    ]
+    botones = []
+    for producto in productos:
+        cantidad = cantidad_en_pedido(pedido, producto.id) if pedido else 0
+        etiqueta = f"{producto.nombre} · ${precio_texto(producto.precio)} · stock {producto.stock}"
+        if cantidad:
+            etiqueta += f" · en pedido {cantidad}"
+        botones.append([InlineKeyboardButton(etiqueta, callback_data=f"producto:{producto.id}")])
+        if cantidad:
+            botones.append([
+                InlineKeyboardButton("−", callback_data=f"carrito:menos:{producto.id}"),
+                InlineKeyboardButton(f"{cantidad} en pedido", callback_data=f"producto:{producto.id}"),
+                InlineKeyboardButton("+", callback_data=f"carrito:mas:{producto.id}"),
+                InlineKeyboardButton("Quitar", callback_data=f"carrito:quitar:{producto.id}"),
+            ])
+    total_unidades = sum(detalle["cantidad"] for detalle in pedido["detalles"]) if pedido else 0
+    botones.append([InlineKeyboardButton(f"Finalizar pedido ({total_unidades})", callback_data="finalizar")])
     return InlineKeyboardMarkup(botones), productos
+
+
+def teclado_cantidad(cantidad, maximo, ya_agregado=False):
+    botones = [
+        [
+            InlineKeyboardButton("−", callback_data="cantidad:menos"),
+            InlineKeyboardButton(str(cantidad), callback_data="cantidad:actual"),
+            InlineKeyboardButton("+", callback_data="cantidad:mas"),
+        ],
+        [InlineKeyboardButton("Guardar cantidad" if ya_agregado else f"Agregar {cantidad} al pedido", callback_data="cantidad:agregar")],
+    ]
+    if ya_agregado:
+        botones.append([InlineKeyboardButton("Quitar producto del pedido", callback_data="cantidad:quitar")])
+    botones.append(
+        [InlineKeyboardButton("Volver al catálogo", callback_data="cantidad:volver")],
+    )
+    return InlineKeyboardMarkup(botones)
+
+
+def cantidad_maxima_disponible(producto, pedido):
+    return producto.stock
+
+
+async def editar_catalogo(update, context):
+    pedido = context.user_data["pedido"]
+    keyboard, productos = teclado_productos(pedido)
+    if not productos:
+        if pedido["detalles"]:
+            await update.callback_query.edit_message_text(
+                "Agregaste todo el stock disponible. Podés finalizar el pedido.",
+                reply_markup=keyboard,
+            )
+            return PRODUCTOS
+        await update.callback_query.edit_message_text("No hay productos con stock disponible en este momento.")
+        return ConversationHandler.END
+    resumen = ""
+    if pedido["detalles"]:
+        with SessionLocal() as db:
+            lineas = []
+            for detalle in pedido["detalles"]:
+                producto = db.query(Producto).filter(Producto.id == detalle["producto_id"]).first()
+                if producto:
+                    lineas.append(f"• {producto.nombre} × {detalle['cantidad']}")
+        resumen = "\n\nTu pedido hasta ahora:\n" + "\n".join(lineas)
+    await update.callback_query.edit_message_text(
+        "Elegí un producto. Tocá + o − para indicar cuántos querés." + resumen
+        + f"\n\nEnvío al microcentro: ${precio_texto(COSTO_ENVIO_MICROCENTRO)}.",
+        reply_markup=keyboard,
+    )
+    return PRODUCTOS
 
 
 def texto_catalogo(incluir_bienvenida=False):
@@ -108,7 +191,7 @@ def texto_catalogo(incluir_bienvenida=False):
 
     encabezado = "¡Hola! Este es el catálogo disponible:\n\n" if incluir_bienvenida else "Catálogo disponible:\n\n"
     lineas = [f"• {p.nombre} — ${precio_texto(p.precio)}" for p in productos]
-    pie = "\n\nPara hacer un pedido, escribí /pedido.\nPara consultar el estado, escribí /estado seguido del número de pedido."
+    pie = "\n\nPara hacer un pedido, escribí /pedido.\nPara consultar el estado, escribí /estado seguido del número de pedido.\nPara cancelar un pedido pendiente: /cancelar_pedido NUMERO. Una vez en preparación ya no se puede cancelar."
     return encabezado + "\n".join(lineas) + pie + INFO_COMERCIO
 
 
@@ -150,7 +233,95 @@ async def estado_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("No encontré ese pedido asociado a tu cuenta de Telegram.")
             return
         estados = {"pendiente": "pendiente", "preparando": "en preparación", "listo_para_despacho": "listo para despacho", "en_camino": "en camino", "entregado": "entregado", "cancelado": "cancelado"}
-        await update.message.reply_text(f"El pedido #{pedido.id} está {estados.get(pedido.estado, pedido.estado)}.")
+        novedades = db.query(EventoPedido).filter(EventoPedido.pedido_id == pedido.id).order_by(EventoPedido.id.desc()).limit(3).all()
+        texto = f"El pedido #{pedido.id} está {estados.get(pedido.estado, pedido.estado)}.\nTotal: ${precio_texto(pedido.total)}."
+        for novedad in reversed(novedades):
+            texto += "\n\n" + novedad.descripcion
+        await update.message.reply_text(texto[:4000], reply_markup=boton_cancelacion(pedido.id) if pedido.estado == "pendiente" else None)
+
+
+def boton_cancelacion(pedido_id):
+    return InlineKeyboardMarkup([[InlineKeyboardButton("Cancelar pedido pendiente", callback_data=f"anular:consultar:{pedido_id}")]])
+
+
+async def cancelar_pedido_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if context.args:
+        if len(context.args) != 1 or not context.args[0].isdigit():
+            await update.effective_message.reply_text("Usá /cancelar_pedido NUMERO. Ejemplo: /cancelar_pedido 12")
+            return
+        pedido_id = int(context.args[0])
+        with SessionLocal() as db:
+            pedido = db.query(Pedido).filter(Pedido.id == pedido_id, Pedido.telegram_user_id == str(update.effective_user.id)).first()
+            if not pedido:
+                await update.effective_message.reply_text("No encontré ese pedido asociado a tu cuenta de Telegram.")
+                return
+            if pedido.estado != "pendiente":
+                await update.effective_message.reply_text("Solo podés cancelar un pedido pendiente. Una vez en preparación ya no se puede cancelar.")
+                return
+        await update.effective_message.reply_text(f"Pedido #{pedido_id}: tocá el botón para solicitar la cancelación.", reply_markup=boton_cancelacion(pedido_id))
+        return
+    with SessionLocal() as db:
+        pedidos = db.query(Pedido).filter(Pedido.telegram_user_id == str(update.effective_user.id), Pedido.estado == "pendiente").order_by(Pedido.id.desc()).limit(10).all()
+    if not pedidos:
+        await update.effective_message.reply_text("No tenés pedidos pendientes que se puedan cancelar. Una vez en preparación ya no se puede cancelar.")
+        return
+    botones = [[InlineKeyboardButton(f"Cancelar pedido #{p.id}", callback_data=f"anular:consultar:{p.id}")] for p in pedidos]
+    await update.effective_message.reply_text("Elegí el pedido pendiente que querés cancelar:", reply_markup=InlineKeyboardMarkup(botones))
+
+
+async def cancelar_pedido_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    _, accion, id_texto = query.data.split(":")
+    pedido_id = int(id_texto)
+    if accion == "volver":
+        await query.edit_message_text(f"No cancelamos el pedido #{pedido_id}. Consultá su estado con /estado {pedido_id}.")
+        return
+    if accion == "consultar":
+        with SessionLocal() as db:
+            pedido = db.query(Pedido).filter(Pedido.id == pedido_id, Pedido.telegram_user_id == str(update.effective_user.id)).first()
+            disponible = pedido and pedido.estado == "pendiente"
+        if not disponible:
+            await query.edit_message_text("El pedido no está disponible para cancelar. Solo se permite mientras está pendiente.")
+            return
+        await query.edit_message_text(f"¿Confirmás cancelar por completo el pedido #{pedido_id}? Si ya transferiste, tendrás que coordinar la devolución con el comercio.", reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("Sí, cancelar", callback_data=f"anular:confirmar:{pedido_id}")],
+            [InlineKeyboardButton("Conservar pedido", callback_data=f"anular:volver:{pedido_id}")],
+        ]))
+        return
+    try:
+        with SessionLocal() as db:
+            evento_id = cancelar_por_cliente(db, pedido_id, str(update.effective_user.id))
+    except HTTPException as error:
+        await query.edit_message_text(str(error.detail))
+        return
+    with SessionLocal() as db:
+        pedido_cancelado = db.get(Pedido, pedido_id)
+        aviso = instrucciones_devolucion(pedido_cancelado)
+    await query.edit_message_text(f"Pedido #{pedido_id} cancelado." + aviso)
+    await asyncio.to_thread(enviar_evento, evento_id)
+
+
+def instrucciones_devolucion(pedido):
+    if pedido.metodo_pago != 'Transferencia':
+        return ''
+    if pedido.alias_cliente:
+        return (f"\nInformaste como cuenta de origen: {pedido.alias_cliente}. El comercio debe verificarla contra el pago recibido y gestionar la devolución. Te enviaremos el comprobante por Telegram cuando lo carguen."
+                f"\nSi necesitás corregirla: /alias_devolucion {pedido.id} TU_ALIAS")
+    return (f"\nPara gestionar la devolución, enviá el alias o CBU/CVU de la misma cuenta desde la que pagaste: /alias_devolucion {pedido.id} TU_ALIAS. Cuando el comercio registre la devolución, recibirás el comprobante por Telegram.")
+
+
+async def alias_devolucion_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if len(context.args) != 2 or not context.args[0].isdigit():
+        await update.effective_message.reply_text('Usá /alias_devolucion NUMERO TU_ALIAS. Debe ser la misma cuenta desde la que transferiste.')
+        return
+    try:
+        with SessionLocal() as db:
+            guardar_alias_cliente(db, int(context.args[0]), str(update.effective_user.id), context.args[1])
+    except HTTPException as error:
+        await update.effective_message.reply_text(str(error.detail))
+        return
+    await update.effective_message.reply_text('Guardamos la cuenta que informaste. El comercio la verificará contra el pago recibido antes de devolver el dinero. Esto no realiza una transferencia automáticamente.')
 
 
 async def iniciar_pedido(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -183,7 +354,7 @@ async def recibir_telefono(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def mostrar_catalogo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard, productos = teclado_productos()
+    keyboard, productos = teclado_productos(context.user_data["pedido"])
     if not productos:
         await update.effective_message.reply_text("No hay productos con stock disponible en este momento. Probá más tarde con /pedido.")
         context.user_data.pop("pedido", None)
@@ -198,6 +369,23 @@ async def mostrar_catalogo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def elegir_producto(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+    if query.data.startswith("carrito:"):
+        _, accion, id_texto = query.data.split(":", 2)
+        producto_id = int(id_texto)
+        pedido = context.user_data["pedido"]
+        linea = next((d for d in pedido["detalles"] if d["producto_id"] == producto_id), None)
+        producto = next((p for p in leer_catalogo() if p.id == producto_id), None)
+        if not linea:
+            return await editar_catalogo(update, context)
+        if accion == "quitar":
+            pedido["detalles"].remove(linea)
+        elif accion == "menos":
+            linea["cantidad"] -= 1
+            if linea["cantidad"] <= 0:
+                pedido["detalles"].remove(linea)
+        elif accion == "mas" and producto and linea["cantidad"] < producto.stock:
+            linea["cantidad"] += 1
+        return await editar_catalogo(update, context)
     if query.data == "finalizar":
         if not context.user_data["pedido"]["detalles"]:
             await query.edit_message_text("Todavía no agregaste productos. Elegí al menos uno para continuar.", reply_markup=teclado_productos()[0])
@@ -206,44 +394,88 @@ async def elegir_producto(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("Efectivo", callback_data="pago:Efectivo")],
             [InlineKeyboardButton("Transferencia", callback_data="pago:Transferencia")],
             [InlineKeyboardButton("Coordinar", callback_data="pago:Coordinar")],
+            [InlineKeyboardButton("Volver al catálogo", callback_data="atras:productos")],
         ])
         await query.edit_message_text("¿Cómo preferís pagar?", reply_markup=keyboard)
         return PAGO
 
     producto_id = int(query.data.split(":", 1)[1])
     producto = next((p for p in leer_catalogo() if p.id == producto_id), None)
-    if not producto:
-        await query.edit_message_text("Ese producto ya no tiene stock. Elegí otro:", reply_markup=teclado_productos()[0])
+    if not producto or cantidad_maxima_disponible(producto, context.user_data["pedido"]) < 1:
+        await query.edit_message_text("Ese producto ya no tiene stock disponible. Elegí otro:", reply_markup=teclado_productos(context.user_data["pedido"])[0])
         return PRODUCTOS
     context.user_data["producto_actual"] = producto_id
-    await query.edit_message_text(f"¿Cuántas unidades de {producto.nombre} querés? (stock actual: {producto.stock})")
+    cantidad_actual = cantidad_en_pedido(context.user_data["pedido"], producto_id)
+    context.user_data["cantidad_actual"] = cantidad_actual or 1
+    maximo = cantidad_maxima_disponible(producto, context.user_data["pedido"])
+    await query.edit_message_text(
+        f"{producto.nombre} — ${precio_texto(producto.precio)} cada uno\n"
+        f"Elegí la cantidad total (máximo disponible: {maximo}):",
+        reply_markup=teclado_cantidad(
+            context.user_data["cantidad_actual"], maximo, ya_agregado=bool(cantidad_actual)
+        ),
+    )
     return CANTIDAD
 
 
-async def recibir_cantidad(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    texto = update.message.text.strip()
-    if not texto.isdigit() or int(texto) < 1:
-        await update.message.reply_text("Indicá una cantidad entera mayor a cero.")
-        return CANTIDAD
-    producto_id = context.user_data["producto_actual"]
-    cantidad = int(texto)
-    pedido = context.user_data["pedido"]
-    linea = next((d for d in pedido["detalles"] if d["producto_id"] == producto_id), None)
-    acumulado = cantidad + (linea["cantidad"] if linea else 0)
+async def ajustar_cantidad(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    producto_id = context.user_data.get("producto_actual")
     producto = next((p for p in leer_catalogo() if p.id == producto_id), None)
-    if not producto or acumulado > producto.stock:
-        await update.message.reply_text("No alcanza el stock para esa cantidad. Probá con menos unidades.")
-        return CANTIDAD
-    if linea:
-        linea["cantidad"] = acumulado
-    else:
-        pedido["detalles"].append({"producto_id": producto_id, "cantidad": cantidad})
-    return await mostrar_catalogo(update, context)
+    pedido = context.user_data.get("pedido")
+    if not producto or not pedido:
+        context.user_data.pop("producto_actual", None)
+        context.user_data.pop("cantidad_actual", None)
+        await query.edit_message_text("El stock cambió. Iniciá el pedido nuevamente con /pedido.")
+        return ConversationHandler.END
+
+    maximo = cantidad_maxima_disponible(producto, pedido)
+    if maximo < 1:
+        await query.edit_message_text("Ya agregaste todo el stock disponible de este producto.", reply_markup=teclado_productos(pedido)[0])
+        return PRODUCTOS
+
+    accion = query.data.split(":", 1)[1]
+    cantidad = context.user_data.get("cantidad_actual", 1)
+    if accion == "menos":
+        cantidad = max(1, cantidad - 1)
+    elif accion == "mas":
+        cantidad = min(maximo, cantidad + 1)
+    elif accion == "actual":
+        pass
+    elif accion == "volver":
+        context.user_data.pop("producto_actual", None)
+        context.user_data.pop("cantidad_actual", None)
+        return await editar_catalogo(update, context)
+    elif accion == "agregar":
+        linea = next((d for d in pedido["detalles"] if d["producto_id"] == producto_id), None)
+        if linea:
+            linea["cantidad"] = cantidad
+        else:
+            pedido["detalles"].append({"producto_id": producto_id, "cantidad": cantidad})
+        context.user_data.pop("producto_actual", None)
+        context.user_data.pop("cantidad_actual", None)
+        return await editar_catalogo(update, context)
+    elif accion == "quitar":
+        pedido["detalles"] = [d for d in pedido["detalles"] if d["producto_id"] != producto_id]
+        context.user_data.pop("producto_actual", None)
+        context.user_data.pop("cantidad_actual", None)
+        return await editar_catalogo(update, context)
+
+    context.user_data["cantidad_actual"] = cantidad
+    await query.edit_message_reply_markup(
+        reply_markup=teclado_cantidad(
+            cantidad, maximo, ya_agregado=cantidad_en_pedido(pedido, producto_id) > 0
+        )
+    )
+    return CANTIDAD
 
 
 async def elegir_pago(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+    if query.data == "atras:productos":
+        return await editar_catalogo(update, context)
     pedido = context.user_data["pedido"]
     pedido["metodo_pago"] = query.data.split(":", 1)[1]
     lineas, total = total_y_lineas(pedido)
@@ -261,11 +493,22 @@ async def elegir_pago(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if pedido["metodo_pago"] == "Transferencia":
         await query.edit_message_text(
-            f"Alias para transferencia: {alias_transferencia()}\nEnvío al microcentro: ${precio_texto(COSTO_ENVIO_MICROCENTRO)}\nTotal con envío: ${precio_texto(total)}. Enviá una foto o un PDF del comprobante para continuar."
+            f"Alias del comercio para pagar: {alias_transferencia()}\nEnvío al microcentro: ${precio_texto(COSTO_ENVIO_MICROCENTRO)}\nTotal con envío: ${precio_texto(total)}.\nAntes de enviar el comprobante, escribí el alias o CBU/CVU de TU cuenta, desde la que vas a transferir. Lo usamos si corresponde una devolución a esa misma cuenta."
         )
-        return COMPROBANTE
+        return ALIAS_TRANSFERENCIA
 
     return await enviar_resumen(update, context, editar=True)
+
+
+async def recibir_alias_transferencia(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        alias = validar_alias(update.effective_message.text)
+    except HTTPException as error:
+        await update.effective_message.reply_text(str(error.detail))
+        return ALIAS_TRANSFERENCIA
+    context.user_data['pedido']['alias_cliente'] = alias
+    await update.effective_message.reply_text(f'Cuenta de origen informada: {alias}. Ahora enviá una foto o un PDF del comprobante del pago al comercio ({alias_transferencia()}).')
+    return COMPROBANTE
 
 
 async def recibir_monto_efectivo(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -317,6 +560,8 @@ async def recibir_comprobante(update: Update, context: ContextTypes.DEFAULT_TYPE
 async def confirmar_pedido(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+    if query.data == "modificar":
+        return await editar_catalogo(update, context)
     if query.data == "cancelar":
         context.user_data.pop("pedido", None)
         await query.edit_message_text("Pedido cancelado. Cuando quieras, podés empezar de nuevo con /pedido.")
@@ -331,13 +576,16 @@ async def confirmar_pedido(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception:
         await query.edit_message_text("No pude registrar el pedido; puede haber cambiado el stock. Escribí /pedido para intentarlo otra vez.")
         return ConversationHandler.END
-    await query.edit_message_text(f"¡Listo! Recibimos tu pedido #{pedido.id} por ${precio_texto(pedido.total)}. Te avisaremos cuando cambie su estado. También podés consultar con /estado {pedido.id}.")
+    await query.edit_message_text(f"¡Listo! Recibimos tu pedido #{pedido.id} por ${precio_texto(pedido.total)}. Te avisaremos cuando cambie su estado. También podés consultar con /estado {pedido.id}. Podés cancelarlo solo mientras esté pendiente; una vez en preparación no se puede.", reply_markup=boton_cancelacion(pedido.id))
     return ConversationHandler.END
 
 
 async def cancelar(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if context.args or not context.user_data.get("pedido"):
+        await cancelar_pedido_cmd(update, context)
+        return
     context.user_data.pop("pedido", None)
-    await update.effective_message.reply_text("Listo, cancelé el pedido. Para volver a empezar, escribí /pedido.")
+    await update.effective_message.reply_text("Descarté el carrito sin confirmar. Los pedidos ya realizados no cambiaron. Para cancelar uno pendiente: /cancelar_pedido NUMERO.")
     return ConversationHandler.END
 
 
@@ -353,12 +601,13 @@ def main():
             NOMBRE: [MessageHandler(filters.TEXT & ~filters.COMMAND, recibir_nombre)],
             DIRECCION: [MessageHandler(filters.TEXT & ~filters.COMMAND, recibir_direccion)],
             TELEFONO: [MessageHandler(filters.TEXT & ~filters.COMMAND, recibir_telefono)],
-            PRODUCTOS: [CallbackQueryHandler(elegir_producto, pattern=r"^(producto:\d+|finalizar)$")],
-            CANTIDAD: [MessageHandler(filters.TEXT & ~filters.COMMAND, recibir_cantidad)],
-            PAGO: [CallbackQueryHandler(elegir_pago, pattern=r"^pago:(Efectivo|Transferencia|Coordinar)$")],
+            PRODUCTOS: [CallbackQueryHandler(elegir_producto, pattern=r"^(producto:\d+|carrito:(menos|mas|quitar):\d+|finalizar)$")],
+            CANTIDAD: [CallbackQueryHandler(ajustar_cantidad, pattern=r"^cantidad:(menos|mas|actual|agregar|volver)$")],
+            PAGO: [CallbackQueryHandler(elegir_pago, pattern=r"^(pago:(Efectivo|Transferencia|Coordinar)|atras:productos)$")],
             MONTO_EFECTIVO: [MessageHandler(filters.TEXT & ~filters.COMMAND, recibir_monto_efectivo)],
+            ALIAS_TRANSFERENCIA: [MessageHandler(filters.TEXT & ~filters.COMMAND, recibir_alias_transferencia)],
             COMPROBANTE: [MessageHandler(filters.PHOTO | filters.Document.ALL | (filters.TEXT & ~filters.COMMAND), recibir_comprobante)],
-            CONFIRMAR: [CallbackQueryHandler(confirmar_pedido, pattern=r"^(confirmar|cancelar)$")],
+            CONFIRMAR: [CallbackQueryHandler(confirmar_pedido, pattern=r"^(confirmar|modificar|cancelar)$")],
         },
         fallbacks=[CommandHandler("cancelar", cancelar), CommandHandler("pedido", iniciar_pedido)],
     )
@@ -366,7 +615,11 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("productos", productos_cmd))
     app.add_handler(CommandHandler("estado", estado_cmd))
+    app.add_handler(CommandHandler("cancelar_pedido", cancelar_pedido_cmd))
+    app.add_handler(CommandHandler("alias_devolucion", alias_devolucion_cmd))
     app.add_handler(conversacion)
+    app.add_handler(CommandHandler("cancelar", cancelar))
+    app.add_handler(CallbackQueryHandler(cancelar_pedido_callback, pattern=r"^anular:(consultar|confirmar|volver):\d+$"))
     # Grupo posterior: cubre mensajes libres cuando no hay pedido en curso.
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, responder_mensaje_libre), group=1)
     app.run_polling()

@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1300" height="1020" viewBox="0 0 1300 1020">
+<title>Relaciones de la base de datos de SistemaPedidos</title>
+<desc>Diagrama simplificado de las nueve tablas, con claves primarias y referencias.</desc>
+<rect width="1300" height="1020" fill="#f4f7f4"/>
+<style>text{font-family:Segoe UI,Arial,sans-serif;fill:#223d31}.title{font-size:19px;font-weight:700;fill:white}.field{font-size:16px}.label{font-size:14px;fill:#596c61}</style>
+<g fill="none" stroke="#6c8d79" stroke-width="2.5">
+<path d="M180 340V240"/>
+<path d="M470 410H330"/>
+<path d="M620 300V190"/>
+<path d="M180 690H15V160H30"/>
+<path d="M470 490H390V780H330"/>
+<path d="M620 700V540"/>
+<path d="M920 430H770"/>
+<path d="M1230 800H1260V130H1230"/>
+</g>
+<g class="label"><text x="190" y="290">1 → N</text><text x="355" y="398">1 → N</text>
+<text x="635" y="250">1 → N</text><text x="635" y="630">1 → N</text>
+<text x="796" y="416">1 → 0..1</text><text x="1248" y="625" transform="rotate(-90 1248 625)">1 → N</text></g>
+<rect x="30" y="80" width="300" height="160" rx="12" fill="white" stroke="#cddcd1"/>
+<path d="M42 80H318Q330 80 330 92V124H30V92Q30 80 42 80" fill="#245a43"/>
+<text x="45" y="109" class="title">productos</text>
+<text x="45" y="152" class="field">PK id</text>
+<text x="45" y="179" class="field">nombre · precio</text>
+<text x="45" y="206" class="field">stock disponible</text>
+<rect x="30" y="340" width="300" height="180" rx="12" fill="white" stroke="#cddcd1"/>
+<path d="M42 340H318Q330 340 330 352V384H30V352Q30 340 42 340" fill="#245a43"/>
+<text x="45" y="369" class="title">detalle_pedidos</text>
+<text x="45" y="412" class="field">PK id</text>
+<text x="45" y="439" class="field">FK pedido_id</text>
+<text x="45" y="466" class="field">FK producto_id</text>
+<text x="45" y="493" class="field">cantidad · precio de venta</text>
+<rect x="470" y="40" width="300" height="150" rx="12" fill="white" stroke="#cddcd1"/>
+<path d="M482 40H758Q770 40 770 52V84H470V52Q470 40 482 40" fill="#245a43"/>
+<text x="485" y="69" class="title">jornadas</text>
+<text x="485" y="112" class="field">PK id</text>
+<text x="485" y="139" class="field">fecha · iniciada_en</text>
+<text x="485" y="166" class="field">cerrada_en · resumen de ventas</text>
+<rect x="470" y="300" width="300" height="240" rx="12" fill="white" stroke="#cddcd1"/>
+<path d="M482 300H758Q770 300 770 312V344H470V312Q470 300 482 300" fill="#245a43"/>
+<text x="485" y="329" class="title">pedidos</text>
+<text x="485" y="372" class="field">PK id</text>
+<text x="485" y="399" class="field">FK jornada_id (opcional)</text>
+<text x="485" y="426" class="field">cliente · entrega · Telegram</text>
+<text x="485" y="453" class="field">estado · pago · total</text>
+<text x="485" y="480" class="field">comprobante original: file_id</text>
+<text x="485" y="507" class="field">alias_cliente</text>
+<rect x="30" y="690" width="300" height="190" rx="12" fill="white" stroke="#cddcd1"/>
+<path d="M42 690H318Q330 690 330 702V734H30V702Q30 690 42 690" fill="#245a43"/>
+<text x="45" y="719" class="title">movimientos_stock</text>
+<text x="45" y="762" class="field">PK id</text>
+<text x="45" y="789" class="field">FK producto_id</text>
+<text x="45" y="816" class="field">FK pedido_id (opcional)</text>
+<text x="45" y="843" class="field">delta · motivo · autor · fecha</text>
+<rect x="470" y="700" width="300" height="180" rx="12" fill="white" stroke="#cddcd1"/>
+<path d="M482 700H758Q770 700 770 712V744H470V712Q470 700 482 700" fill="#245a43"/>
+<text x="485" y="729" class="title">eventos_pedido</text>
+<text x="485" y="772" class="field">PK id</text>
+<text x="485" y="799" class="field">FK pedido_id</text>
+<text x="485" y="826" class="field">tipo · descripción · autor</text>
+<text x="485" y="853" class="field">notificado</text>
+<rect x="920" y="330" width="310" height="210" rx="12" fill="white" stroke="#cddcd1"/>
+<path d="M932 330H1218Q1230 330 1230 342V374H920V342Q920 330 932 330" fill="#245a43"/>
+<text x="935" y="359" class="title">devoluciones_pedido</text>
+<text x="935" y="402" class="field">PK id</text>
+<text x="935" y="429" class="field">FK pedido_id (UNIQUE)</text>
+<text x="935" y="456" class="field">alias_destino · importe</text>
+<text x="935" y="483" class="field">comprobante: bytes</text>
+<text x="935" y="510" class="field">enviado_telegram</text>
+<rect x="920" y="50" width="310" height="160" rx="12" fill="white" stroke="#cddcd1"/>
+<path d="M932 50H1218Q1230 50 1230 62V94H920V62Q920 50 932 50" fill="#245a43"/>
+<text x="935" y="79" class="title">usuarios_panel</text>
+<text x="935" y="122" class="field">PK id</text>
+<text x="935" y="149" class="field">nombre_usuario (UNIQUE) · rol</text>
+<text x="935" y="176" class="field">sal · hash de clave · activo</text>
+<rect x="920" y="720" width="310" height="160" rx="12" fill="white" stroke="#cddcd1"/>
+<path d="M932 720H1218Q1230 720 1230 732V764H920V732Q920 720 932 720" fill="#245a43"/>
+<text x="935" y="749" class="title">sesiones_panel</text>
+<text x="935" y="792" class="field">PK token_hash</text>
+<text x="935" y="819" class="field">FK usuario_id</text>
+<text x="935" y="846" class="field">expira_en</text>
+<text x="30" y="950" style="font-size:19px;font-weight:700">PK = clave primaria · FK = clave foránea · N = muchos</text>
+<text x="30" y="980" class="label">Esquema simplificado: consultar 03_BASE_DE_DATOS.md para todos los campos, cardinalidades y límites de integridad.</text>
+</svg>

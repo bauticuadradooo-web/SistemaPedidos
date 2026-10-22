@@ -18,6 +18,7 @@ class PedidoCreate(BaseModel):
     comprobante_mime_type: str | None = Field(default=None, max_length=120)
     comprobante_nombre: str | None = Field(default=None, max_length=255)
     telegram_user_id: str | None = Field(default=None, max_length=40)
+    alias_cliente: str | None = Field(default=None, min_length=3, max_length=80)
     detalles: list[DetallePedidoCreate] = Field(min_length=1)
 
     @model_validator(mode="after")

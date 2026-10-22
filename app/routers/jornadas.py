@@ -109,9 +109,11 @@ def finalizar_jornada(
     try:
         respaldo = crear_respaldo()
         nombre_respaldo = respaldo["nombre"]
+        informe_respaldo = respaldo["informe"]
         aviso_respaldo = None
     except Exception:
         nombre_respaldo = None
+        informe_respaldo = None
         aviso_respaldo = "No se pudo crear la copia automática; usá Copia de seguridad en el panel."
     return {
         "mensaje": "Día finalizado. Se archivaron sus pedidos y ventas.",
@@ -120,5 +122,6 @@ def finalizar_jornada(
         "total_ventas": jornada.total_ventas,
         "proxima_fecha": proxima.fecha.isoformat(),
         "respaldo": nombre_respaldo,
+        "informe_respaldo": informe_respaldo,
         "aviso_respaldo": aviso_respaldo,
     }

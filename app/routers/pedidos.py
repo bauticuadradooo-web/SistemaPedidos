@@ -5,16 +5,39 @@ from urllib.request import urlopen
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
+from pydantic import BaseModel, Field
 
 from app.auth import exigir_roles
 from app.database import SessionLocal
-from app.models import Jornada, Pedido
+from app.models import Jornada, Pedido, EventoPedido
 from app.schemas import PedidoCreate
 from app.services.jornadas import jornada_actual
 from app.services.pedidos import crear_pedido as guardar_pedido
 from app.services.telegram import notificar_estado, notificar_pago_verificado
+from app.services.telegram import enviar_evento
+from app.services.cambios import cancelar_parcial, evento, motivo_valido, pedido_editable, reponer_detalles
 
 router = APIRouter()
+
+
+class CancelacionParcial(BaseModel):
+    detalle_id: int = Field(gt=0)
+    cantidad: int = Field(gt=0)
+    motivo: str = Field(min_length=3, max_length=1000)
+    reponer_stock: bool
+
+
+class IncidenciaDelivery(BaseModel):
+    motivo: str = Field(min_length=3, max_length=1000)
+
+
+def eventos_a_dict(pedido):
+    from sqlalchemy.orm import object_session
+    db = object_session(pedido)
+    registros = db.query(EventoPedido).filter(EventoPedido.pedido_id == pedido.id).order_by(EventoPedido.id).all()
+    return [{"id": e.id, "tipo": e.tipo, "descripcion": e.descripcion,
+             "autor": e.autor, "fecha": e.creado_en.isoformat() + "Z", "notificado": e.notificado,
+             "telegram_disponible": bool(pedido.telegram_user_id)} for e in registros]
 
 
 def obtener_db():
@@ -37,6 +60,7 @@ def crear_pedido(
 def pedido_a_dict(pedido: Pedido, rol: str):
     detalles = [
         {
+            "detalle_id": detalle.id,
             "producto_id": detalle.producto_id,
             "producto": detalle.producto.nombre if detalle.producto else "Producto eliminado",
             "cantidad": detalle.cantidad,
@@ -46,8 +70,12 @@ def pedido_a_dict(pedido: Pedido, rol: str):
         for detalle in pedido.detalles
     ]
     if rol == "preparador":
-        articulos = [{"producto": d["producto"], "cantidad": d["cantidad"]} for d in detalles]
-        return {"id": pedido.id, "estado": pedido.estado, "detalles": articulos}
+        articulos = [{"detalle_id": d["detalle_id"], "producto_id": d["producto_id"], "producto": d["producto"], "cantidad": d["cantidad"]} for d in detalles]
+        # Los importes y datos personales siguen reservados a administración/despacho.
+        eventos = eventos_a_dict(pedido)
+        for e in eventos:
+            e["descripcion"] = e["descripcion"].split("\nNuevo total")[0]
+        return {"id": pedido.id, "estado": pedido.estado, "detalles": articulos, "eventos": eventos}
 
     return {
         "id": pedido.id,
@@ -65,6 +93,7 @@ def pedido_a_dict(pedido: Pedido, rol: str):
         "total": pedido.total,
         "estado": pedido.estado,
         "detalles": detalles,
+        "eventos": eventos_a_dict(pedido),
     }
 
 
@@ -106,12 +135,7 @@ def cambiar_estado(
     if nuevo_estado not in estados_validos:
         raise HTTPException(status_code=400, detail="Estado no válido")
 
-    pedido = db.query(Pedido).filter(Pedido.id == pedido_id).first()
-    if not pedido:
-        raise HTTPException(status_code=404, detail="Pedido no encontrado")
-    jornada = db.query(Jornada).filter(Jornada.id == pedido.jornada_id).first() if pedido.jornada_id else None
-    if jornada and jornada.cerrada_en is not None:
-        raise HTTPException(status_code=409, detail="Ese pedido pertenece a un día finalizado y quedó archivado")
+    pedido = pedido_editable(db, pedido_id)
     if pedido.estado == "cancelado":
         raise HTTPException(status_code=409, detail="Ese pedido ya está cancelado")
     if nuevo_estado == "cancelado":
@@ -119,9 +143,7 @@ def cambiar_estado(
             raise HTTPException(status_code=403, detail="Solo el administrador puede cancelar pedidos")
         if pedido.estado in {"en_camino", "entregado"}:
             raise HTTPException(status_code=409, detail="No se puede cancelar un pedido que ya salió a reparto")
-        for detalle in pedido.detalles:
-            if detalle.producto:
-                detalle.producto.stock += detalle.cantidad
+        reponer_detalles(db, pedido, usuario.nombre_usuario, "Cancelación completa desde el panel")
         pedido.estado = "cancelado"
         db.commit()
         db.refresh(pedido)
@@ -141,6 +163,12 @@ def cambiar_estado(
         if nuevo_estado in {"en_camino", "entregado"} and pedido.metodo_pago == "Transferencia" and not pedido.pago_verificado:
             raise HTTPException(status_code=403, detail="Primero hay que revisar y verificar el comprobante de transferencia")
 
+    transiciones = {"pendiente": {"preparando"}, "preparando": {"listo_para_despacho"},
+                    "listo_para_despacho": {"en_camino"}, "en_camino": {"entregado"}}
+    if nuevo_estado != pedido.estado and nuevo_estado not in transiciones.get(pedido.estado, set()):
+        raise HTTPException(409, "El pedido debe avanzar en orden: pendiente, preparación, listo, en camino y entregado")
+    if nuevo_estado in {"en_camino", "entregado"} and pedido.metodo_pago == "Transferencia" and not pedido.pago_verificado:
+        raise HTTPException(403, "Primero hay que verificar la transferencia")
     pedido.estado = nuevo_estado
     db.commit()
     db.refresh(pedido)
@@ -148,6 +176,37 @@ def cambiar_estado(
     # Ejecutarla después de responder evita que el clic del panel quede esperando.
     background_tasks.add_task(notificar_estado, pedido.telegram_user_id, pedido.id, pedido.estado)
     return {"mensaje": "Estado actualizado correctamente", "pedido_id": pedido.id, "estado": pedido.estado}
+
+
+@router.post("/pedidos/{pedido_id}/cancelacion-parcial")
+def quitar_productos(pedido_id: int, datos: CancelacionParcial, background_tasks: BackgroundTasks,
+                    db: Session = Depends(obtener_db), usuario=Depends(exigir_roles("administrador", "preparador"))):
+    registro_id = cancelar_parcial(db, pedido_id, datos.detalle_id, datos.cantidad,
+                                  datos.motivo, datos.reponer_stock, usuario.nombre_usuario)
+    background_tasks.add_task(enviar_evento, registro_id)
+    return {"mensaje": "Productos quitados. El resto del pedido sigue en curso; consultá el estado del aviso en el historial.", "evento_id": registro_id}
+
+
+@router.post("/pedidos/{pedido_id}/incidencias-delivery")
+def informar_delivery(pedido_id: int, datos: IncidenciaDelivery, background_tasks: BackgroundTasks,
+                     db: Session = Depends(obtener_db), usuario=Depends(exigir_roles("administrador", "despachante"))):
+    pedido = pedido_editable(db, pedido_id)
+    if pedido.estado not in {"listo_para_despacho", "en_camino"}:
+        raise HTTPException(409, "Las novedades del delivery corresponden a pedidos listos o en camino")
+    registro = evento(db, pedido, "delivery", "Novedad del delivery: " + motivo_valido(datos.motivo), usuario.nombre_usuario)
+    db.commit()
+    background_tasks.add_task(enviar_evento, registro.id)
+    return {"mensaje": "Novedad guardada y aviso a Telegram en proceso", "evento_id": registro.id}
+
+
+@router.post("/pedidos/{pedido_id}/eventos/{evento_id}/reenviar")
+def reenviar_aviso(pedido_id: int, evento_id: int, background_tasks: BackgroundTasks,
+                  db: Session = Depends(obtener_db), _usuario=Depends(exigir_roles("administrador", "preparador", "despachante"))):
+    registro = db.query(EventoPedido).filter(EventoPedido.id == evento_id, EventoPedido.pedido_id == pedido_id).first()
+    if not registro:
+        raise HTTPException(404, "Aviso no encontrado")
+    background_tasks.add_task(enviar_evento, registro.id)
+    return {"mensaje": "Reintento solicitado; el historial indicará si Telegram lo recibió"}
 
 
 @router.put("/pedidos/{pedido_id}/pago-verificado")
